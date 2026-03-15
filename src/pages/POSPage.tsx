@@ -67,7 +67,7 @@ export default function POSPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-10 h-10 text-orange-500 animate-spin" />
+        <Loader2 className="w-10 h-10 text-green-500 animate-spin" />
       </div>
     );
   }
@@ -223,7 +223,7 @@ export default function POSPage() {
               "w-full py-5 rounded-2xl font-bold text-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2",
               confirming
                 ? "bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/20"
-                : "bg-orange-600 hover:bg-orange-700 disabled:bg-stone-300 disabled:cursor-not-allowed text-white shadow-lg shadow-orange-600/20"
+                : "bg-green-600 hover:bg-green-700 disabled:bg-stone-300 disabled:cursor-not-allowed text-white shadow-lg shadow-green-600/20"
             )}
           >
             {checkingOut ? (

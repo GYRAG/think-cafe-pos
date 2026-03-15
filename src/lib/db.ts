@@ -131,18 +131,25 @@ export async function getExpenses(): Promise<Expense[]> {
   }));
 }
 
-export async function addExpense(expense: Omit<Expense, 'id' | 'timestamp'>): Promise<void> {
+export async function addExpense(expense: Omit<Expense, 'id' | 'timestamp'> & { timestamp?: string }): Promise<void> {
   const { error } = await supabase.from('expenses').insert({
     title: expense.title,
     category: expense.category,
     amount: expense.amount,
     notes: expense.notes,
+    ...(expense.timestamp ? { created_at: expense.timestamp } : {}),
   });
   if (error) throw error;
 }
 
-export async function updateExpense(id: string, expense: Partial<Omit<Expense, 'id' | 'timestamp'>>): Promise<void> {
-  const { error } = await supabase.from('expenses').update(expense).eq('id', id);
+export async function updateExpense(id: string, expense: Partial<Omit<Expense, 'id'>> & { timestamp?: string }): Promise<void> {
+  const { error } = await supabase.from('expenses').update({
+    title: expense.title,
+    category: expense.category,
+    amount: expense.amount,
+    notes: expense.notes,
+    ...(expense.timestamp ? { created_at: expense.timestamp } : {}),
+  }).eq('id', id);
   if (error) throw error;
 }
 

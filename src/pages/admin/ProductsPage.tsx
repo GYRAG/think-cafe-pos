@@ -231,7 +231,7 @@ export default function ProductsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-10 h-10 text-orange-500 animate-spin" />
+        <Loader2 className="w-10 h-10 text-green-500 animate-spin" />
       </div>
     );
   }
@@ -253,7 +253,7 @@ export default function ProductsPage() {
         <h1 className="text-3xl font-bold text-stone-800">პროდუქტები</h1>
         <button
           onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-2xl font-bold transition-colors shadow-lg shadow-orange-600/20"
+          className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-orange-700 text-white rounded-2xl font-bold transition-colors shadow-lg shadow-green-600/20"
         >
           <Plus className="w-5 h-5" />
           პროდუქტის დამატება
@@ -328,7 +328,7 @@ export default function ProductsPage() {
                   required
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all"
+                  className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
                 />
               </div>
               
@@ -342,7 +342,7 @@ export default function ProductsPage() {
                     required
                     value={formData.price}
                     onChange={e => setFormData({...formData, price: e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all"
+                    className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
                   />
                 </div>
                 <div>
@@ -354,7 +354,7 @@ export default function ProductsPage() {
                     required
                     value={formData.cost}
                     onChange={e => setFormData({...formData, cost: e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all"
+                    className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
                   />
                 </div>
               </div>
@@ -366,7 +366,7 @@ export default function ProductsPage() {
                   required
                   value={formData.category}
                   onChange={e => setFormData({...formData, category: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all"
+                  className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
                 />
               </div>
 
@@ -376,7 +376,7 @@ export default function ProductsPage() {
                   type="url"
                   value={formData.image_url}
                   onChange={e => setFormData({...formData, image_url: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all"
+                  className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
                   placeholder="https://..."
                 />
               </div>
@@ -387,7 +387,7 @@ export default function ProductsPage() {
                   id="is_active"
                   checked={formData.is_active}
                   onChange={e => setFormData({...formData, is_active: e.target.checked})}
-                  className="w-5 h-5 text-orange-600 rounded focus:ring-orange-500 border-stone-300"
+                  className="w-5 h-5 text-green-600 rounded focus:ring-green-500 border-stone-300"
                 />
                 <label htmlFor="is_active" className="text-sm font-medium text-stone-700 cursor-pointer">
                   პროდუქტი აქტიურია

@@ -12,7 +12,10 @@ export default function POSLayout() {
       {/* Top Bar */}
       <header className="h-16 bg-white border-b border-stone-200 flex items-center justify-between px-6 shrink-0">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-orange-700">Cafe POS</h1>
+          <div className="flex items-center gap-2">
+            <img src="./src/assets/logo-think-corner.jpg" alt="ფიქრის კუთხე" className="w-8 h-8 rounded-lg object-cover shadow-sm" />
+            <h1 className="text-xl font-black text-stone-800 tracking-tight">ფიქრის კუთხე</h1>
+          </div>
           <span className="px-3 py-1 bg-stone-100 rounded-full text-sm font-medium text-stone-600">
             {user?.username} ({user?.role === 'admin' ? 'ადმინი' : 'მოლარე'})
           </span>

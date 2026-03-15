@@ -17,7 +17,8 @@ export default function ExpensesPage() {
     title: '',
     category: 'Utilities',
     amount: '',
-    notes: ''
+    notes: '',
+    timestamp: format(new Date(), "yyyy-MM-dd'T'HH:mm")
   });
 
   const categories = ['Utilities', 'Ingredients', 'Maintenance', 'Supplies', 'Other'];
@@ -46,7 +47,8 @@ export default function ExpensesPage() {
         title: expense.title,
         category: expense.category,
         amount: expense.amount.toString(),
-        notes: expense.notes
+        notes: expense.notes,
+        timestamp: format(parseISO(expense.timestamp), "yyyy-MM-dd'T'HH:mm")
       });
     } else {
       setEditingExpense(null);
@@ -54,7 +56,8 @@ export default function ExpensesPage() {
         title: '',
         category: 'Utilities',
         amount: '',
-        notes: ''
+        notes: '',
+        timestamp: format(new Date(), "yyyy-MM-dd'T'HH:mm")
       });
     }
     setIsModalOpen(true);
@@ -68,7 +71,8 @@ export default function ExpensesPage() {
       title: formData.title,
       category: formData.category,
       amount: parseFloat(formData.amount),
-      notes: formData.notes
+      notes: formData.notes,
+      timestamp: new Date(formData.timestamp).toISOString()
     };
 
     try {
@@ -99,7 +103,7 @@ export default function ExpensesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-10 h-10 text-orange-500 animate-spin" />
+        <Loader2 className="w-10 h-10 text-green-500 animate-spin" />
       </div>
     );
   }
@@ -212,6 +216,17 @@ export default function ExpensesPage() {
                   onChange={e => setFormData({...formData, title: e.target.value})}
                   className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
                   placeholder="მაგ. ელექტროენერგია"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">თარიღი და დრო</label>
+                <input
+                  type="datetime-local"
+                  required
+                  value={formData.timestamp}
+                  onChange={e => setFormData({...formData, timestamp: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
                 />
               </div>
               

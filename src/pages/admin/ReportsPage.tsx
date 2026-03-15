@@ -192,7 +192,7 @@ export default function ReportsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full pt-20">
-        <Loader2 className="w-10 h-10 text-orange-500 animate-spin" />
+        <Loader2 className="w-10 h-10 text-green-500 animate-spin" />
       </div>
     );
   }
@@ -230,14 +230,14 @@ export default function ReportsPage() {
 
       {/* --- TIMEFRAME FILTERS --- */}
       <div className="bg-white p-2 rounded-2xl shadow-sm border border-stone-100 flex flex-wrap items-center gap-2">
-        <button onClick={() => setPeriod('today')} className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${period === 'today' ? 'bg-orange-600 text-white' : 'text-stone-600 hover:bg-stone-50'}`}>დღეს</button>
-        <button onClick={() => setPeriod('this_week')} className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${period === 'this_week' ? 'bg-orange-600 text-white' : 'text-stone-600 hover:bg-stone-50'}`}>ეს კვირა</button>
-        <button onClick={() => setPeriod('this_month')} className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${period === 'this_month' ? 'bg-orange-600 text-white' : 'text-stone-600 hover:bg-stone-50'}`}>ეს თვე</button>
-        <button onClick={() => setPeriod('all_time')} className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${period === 'all_time' ? 'bg-orange-600 text-white' : 'text-stone-600 hover:bg-stone-50'}`}>სრული დრო</button>
+        <button onClick={() => setPeriod('today')} className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${period === 'today' ? 'bg-green-600 text-white' : 'text-stone-600 hover:bg-stone-50'}`}>დღეს</button>
+        <button onClick={() => setPeriod('this_week')} className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${period === 'this_week' ? 'bg-green-600 text-white' : 'text-stone-600 hover:bg-stone-50'}`}>ეს კვირა</button>
+        <button onClick={() => setPeriod('this_month')} className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${period === 'this_month' ? 'bg-green-600 text-white' : 'text-stone-600 hover:bg-stone-50'}`}>ეს თვე</button>
+        <button onClick={() => setPeriod('all_time')} className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${period === 'all_time' ? 'bg-green-600 text-white' : 'text-stone-600 hover:bg-stone-50'}`}>სრული დრო</button>
         
         <div className="w-px h-6 bg-stone-200 mx-2"></div>
         
-        <button onClick={() => setPeriod('custom')} className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl transition-all ${period === 'custom' ? 'bg-orange-600 text-white' : 'text-stone-600 hover:bg-stone-50'}`}>
+        <button onClick={() => setPeriod('custom')} className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl transition-all ${period === 'custom' ? 'bg-green-600 text-white' : 'text-stone-600 hover:bg-stone-50'}`}>
           <CalendarIcon className="w-4 h-4" /> მორგებული
         </button>
 
@@ -261,7 +261,7 @@ export default function ReportsPage() {
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} dy={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} dx={-10} />
                 <Tooltip cursor={{ fill: '#f3f4f6' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}/>
-                <Bar dataKey="შემოსავალი" fill="#ea580c" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="შემოსავალი" fill="#16a34a" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="მოგება" fill="#16a34a" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -306,7 +306,7 @@ export default function ReportsPage() {
                 {reportData.map((row, i) => (
                   <tr key={i} className="hover:bg-stone-50/50 transition-colors">
                     <td className="p-4 font-bold text-stone-800 whitespace-nowrap">{row.name}</td>
-                    <td className="p-4 font-bold text-orange-600 whitespace-nowrap">{row.შემოსავალი.toFixed(2)}₾</td>
+                    <td className="p-4 font-bold text-green-600 whitespace-nowrap">{row.შემოსავალი.toFixed(2)}₾</td>
                     <td className="p-4 text-red-600 font-medium whitespace-nowrap">{row.ხარჯი.toFixed(2)}₾</td>
                     <td className="p-4 font-black text-blue-600 whitespace-nowrap">{row['წმინდა მოგება'].toFixed(2)}₾</td>
                   </tr>

@@ -30,10 +30,8 @@ export default function LoginPage() {
     <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4 font-sans text-stone-900">
       <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center mb-4">
-            <Coffee className="w-8 h-8" />
-          </div>
-          <h1 className="text-3xl font-bold text-stone-800">Cafe POS</h1>
+          <img src="./src/assets/logo-think-corner.jpg" alt="ფიქრის კუთხე" className="w-20 h-20 rounded-2xl object-cover shadow-sm mb-4" />
+          <h1 className="text-3xl font-bold text-stone-800 tracking-tight">ფიქრის კუთხე</h1>
           <p className="text-stone-500 mt-2">სისტემაში შესვლა</p>
         </div>
 
@@ -50,7 +48,7 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
               placeholder="example@cafe.com"
               required
               autoComplete="email"
@@ -63,7 +61,7 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
               placeholder="••••••••"
               required
               autoComplete="current-password"
@@ -73,7 +71,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 bg-orange-600 hover:bg-orange-700 disabled:bg-stone-300 disabled:cursor-not-allowed text-white rounded-xl font-bold text-lg transition-colors shadow-lg shadow-orange-600/20 flex items-center justify-center gap-2"
+            className="w-full py-4 bg-green-600 hover:bg-green-700 disabled:bg-stone-300 disabled:cursor-not-allowed text-white rounded-xl font-bold text-lg transition-colors shadow-lg shadow-green-600/20 flex items-center justify-center gap-2"
           >
             {loading ? (
               <>

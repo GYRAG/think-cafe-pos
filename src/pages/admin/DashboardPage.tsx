@@ -141,7 +141,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full pt-20">
-        <Loader2 className="w-10 h-10 text-orange-500 animate-spin" />
+        <Loader2 className="w-10 h-10 text-green-500 animate-spin" />
       </div>
     );
   }
@@ -203,7 +203,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-stone-100 flex items-center gap-4">
-          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${stats.profit >= 0 ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${stats.profit >= 0 ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-green-600'}`}>
             {stats.profit >= 0 ? <TrendingUp className="w-7 h-7" /> : <TrendingDown className="w-7 h-7" />}
           </div>
           <div>
@@ -238,7 +238,7 @@ export default function DashboardPage() {
                   contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                   formatter={(value: number) => [`${value.toFixed(2)}₾`, 'შემოსავალი']}
                 />
-                <Bar dataKey="შემოსავალი" fill="#ea580c" radius={[6, 6, 0, 0]} barSize={period === 'monthly' ? 14 : 40} />
+                <Bar dataKey="შემოსავალი" fill="#16a34a" radius={[6, 6, 0, 0]} barSize={period === 'monthly' ? 14 : 40} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -254,7 +254,7 @@ export default function DashboardPage() {
               topProducts.map((product, index) => (
                 <div key={index} className="flex items-center justify-between p-4 bg-stone-50 rounded-2xl">
                   <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-sm">
+                    <div className="w-8 h-8 rounded-full bg-orange-100 text-green-600 flex items-center justify-center font-bold text-sm">
                       {index + 1}
                     </div>
                     <span className="font-medium text-stone-800">{product.name}</span>
