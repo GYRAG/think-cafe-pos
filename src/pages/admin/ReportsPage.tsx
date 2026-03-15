@@ -4,7 +4,7 @@ import { Order, Expense, Sale } from '../../types';
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay, isToday, isThisWeek, isThisMonth, subDays } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { Loader2, RotateCcw, Download, FileSpreadsheet, Calendar as CalendarIcon } from 'lucide-react';
-import * as XLSX from 'xlsx';
+// xlsx is dynamically imported inside handleExportExcel to avoid loading ~800KB on every page visit
 
 type Period = 'today' | 'this_week' | 'this_month' | 'all_time' | 'custom';
 
@@ -148,7 +148,8 @@ export default function ReportsPage() {
     link.click();
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
+    const XLSX = await import('xlsx');
     const workbook = XLSX.utils.book_new();
 
     // 1. Financials Sheet
