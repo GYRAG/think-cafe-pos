@@ -56,8 +56,10 @@ export default function POSPage() {
         await completeOrder(cart);
         clearCart();
         setConfirming(false);
-      } catch (err) {
-        alert('შეკვეთის დასრულება ვერ მოხერხდა');
+      } catch (err: any) {
+        const msg = err?.message ?? JSON.stringify(err);
+        console.error('[completeOrder] Failed:', err);
+        alert(`შეკვეთის დასრულება ვერ მოხერხდა:\n${msg}`);
       } finally {
         setCheckingOut(false);
       }
