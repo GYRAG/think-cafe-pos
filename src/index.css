@@ -45,3 +45,18 @@ body {
   contain: layout style;
 }
 
+/* Promote scroll container to its own GPU layer.
+   Scrolling is handled by the compositor thread, not main thread. */
+.pos-scroll {
+  will-change: scroll-position;
+  -webkit-overflow-scrolling: touch;
+  transform: translateZ(0);
+}
+
+/* CSS-native virtualization: browser skips layout+paint for off-screen cards.
+   contain-intrinsic-size = estimated card height so scrollbar stays accurate. */
+.pos-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 200px;
+}
+

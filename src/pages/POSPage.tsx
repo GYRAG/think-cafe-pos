@@ -125,13 +125,13 @@ export default function POSPage() {
         </div>
 
         {/* Products */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pos-product-grid">
+        <div className="flex-1 overflow-y-auto p-6 pos-scroll">
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredProducts.map(product => (
               <button
                 key={product.id}
                 onClick={() => handleAddToCart(product)}
-                className="bg-white rounded-2xl overflow-hidden border border-stone-100 flex flex-col text-left active:opacity-70"
+                className="pos-card bg-white rounded-2xl overflow-hidden border border-stone-100 flex flex-col text-left active:opacity-70"
               >
                 <div className="h-36 w-full bg-stone-100 relative overflow-hidden">
                   {product.image_url ? (
