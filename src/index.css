@@ -6,6 +6,19 @@
 
 body {
   font-family: var(--font-sans);
+  /* Faster text rendering on weak CPUs */
+  text-rendering: optimizeSpeed;
+  -webkit-font-smoothing: subpixel-antialiased;
+}
+
+/* Kill all animations/transitions when OS motion preference is reduced
+   (Chromium on Raspberry OS respects this) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
@@ -15,6 +28,13 @@ body {
 
 /* Hide scrollbar for IE, Edge and Firefox */
 .hide-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
+
+/* Layout containment for the POS product grid — tells the browser
+   items below the fold won't affect layout above, enabling rendering shortcuts */
+.pos-product-grid {
+  contain: layout style;
+}
+

@@ -122,21 +122,23 @@ export default function POSPage() {
 
         {/* Products */}
         <div className="flex-1 overflow-y-auto p-6">
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pos-product-grid">
             {filteredProducts.map(product => (
               <button
                 key={product.id}
                 onClick={() => addToCart(product)}
-                className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-stone-100 flex flex-col text-left group active:scale-95"
+                className="bg-white rounded-2xl overflow-hidden border border-stone-100 flex flex-col text-left active:opacity-70"
               >
-                <div className="h-40 w-full bg-stone-100 relative overflow-hidden">
+                <div className="h-36 w-full bg-stone-100 relative overflow-hidden">
                   {product.image_url ? (
                     <img 
                       src={product.image_url} 
                       alt={product.name} 
                       loading="lazy"
                       decoding="async"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      width="200"
+                      height="144"
+                      className="w-full h-full object-cover"
                       referrerPolicy="no-referrer"
                     />
                   ) : (
@@ -144,13 +146,13 @@ export default function POSPage() {
                       <ShoppingBag className="w-12 h-12" />
                     </div>
                   )}
-                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full font-bold text-stone-900 shadow-sm">
+                  <div className="absolute top-2 right-2 bg-white px-2 py-0.5 rounded-full font-bold text-stone-900 text-sm shadow-sm">
                     {product.price}₾
                   </div>
                 </div>
-                <div className="p-4">
-                  <h3 className="font-bold text-stone-800 text-lg leading-tight line-clamp-2">{product.name}</h3>
-                  <p className="text-stone-500 text-sm mt-1">{product.category}</p>
+                <div className="p-3">
+                  <h3 className="font-bold text-stone-800 text-base leading-tight line-clamp-2">{product.name}</h3>
+                  <p className="text-stone-500 text-xs mt-0.5">{product.category}</p>
                 </div>
               </button>
             ))}
