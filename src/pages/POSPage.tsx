@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useCallback, memo } from 'react';
 import { Product } from '../types';
 import { getProducts, completeOrder } from '../lib/db';
 import { useStore } from '../store';
@@ -45,7 +45,7 @@ export default function POSPage() {
 
   const totalAmount = useMemo(() => cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0), [cart]);
 
-  const handleCheckoutClick = async () => {
+  const handleCheckoutClick = useCallback(async () => {
     if (cart.length === 0 || checkingOut) return;
     
     if (!confirming) {
@@ -64,7 +64,11 @@ export default function POSPage() {
         setCheckingOut(false);
       }
     }
-  };
+  }, [cart, checkingOut, confirming, clearCart]);
+
+  const handleAddToCart = useCallback((product: Product) => addToCart(product), [addToCart]);
+  const handleUpdateQty = useCallback((id: string, delta: number) => updateCartQuantity(id, delta), [updateCartQuantity]);
+  const handleClearCart = useCallback(() => clearCart(), [clearCart]);
 
   if (loading) {
     return (
@@ -95,10 +99,10 @@ export default function POSPage() {
             <button
               onClick={() => setSelectedCategory(null)}
               className={clsx(
-                "px-6 py-3 rounded-2xl font-bold text-sm transition-all",
-                selectedCategory === null 
-                  ? "bg-stone-800 text-white shadow-md" 
-                  : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                "px-5 py-2.5 rounded-xl font-bold text-sm",
+                selectedCategory === null
+                  ? "bg-stone-800 text-white"
+                  : "bg-stone-100 text-stone-600"
               )}
             >
               ყველა
@@ -108,10 +112,10 @@ export default function POSPage() {
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
                 className={clsx(
-                  "px-6 py-3 rounded-2xl font-bold text-sm transition-all",
-                  selectedCategory === cat 
-                    ? "bg-stone-800 text-white shadow-md" 
-                    : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                  "px-5 py-2.5 rounded-xl font-bold text-sm",
+                  selectedCategory === cat
+                    ? "bg-stone-800 text-white"
+                    : "bg-stone-100 text-stone-600"
                 )}
               >
                 {cat}
@@ -126,7 +130,7 @@ export default function POSPage() {
             {filteredProducts.map(product => (
               <button
                 key={product.id}
-                onClick={() => addToCart(product)}
+                onClick={() => handleAddToCart(product)}
                 className="bg-white rounded-2xl overflow-hidden border border-stone-100 flex flex-col text-left active:opacity-70"
               >
                 <div className="h-36 w-full bg-stone-100 relative overflow-hidden">
@@ -170,7 +174,7 @@ export default function POSPage() {
         <div className="p-6 border-b border-stone-200 shrink-0 flex justify-between items-center">
           <h2 className="text-2xl font-bold text-stone-800">მიმდინარე შეკვეთა</h2>
           {cart.length > 0 && (
-            <button onClick={clearCart} className="text-stone-400 hover:text-red-500 transition-colors" title="გასუფთავება">
+            <button onClick={handleClearCart} className="text-stone-400" title="გასუფთავება">
               <Trash2 className="w-5 h-5" />
             </button>
           )}
@@ -185,32 +189,7 @@ export default function POSPage() {
             </div>
           ) : (
             cart.map(item => (
-              <div key={item.product.id} className="flex flex-col p-4 bg-stone-50 rounded-2xl border border-stone-100">
-                <div className="flex justify-between items-start mb-3">
-                  <h4 className="font-bold text-stone-800 pr-4">{item.product.name}</h4>
-                  <span className="font-bold text-stone-900">{item.product.price * item.quantity}₾</span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-stone-500 text-sm">{item.product.price}₾ / ცალი</span>
-                  
-                  <div className="flex items-center gap-3 bg-white rounded-xl border border-stone-200 p-1 shadow-sm">
-                    <button
-                      onClick={() => updateCartQuantity(item.product.id, -1)}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 text-stone-600 transition-colors"
-                    >
-                      {item.quantity === 1 ? <Trash2 className="w-4 h-4 text-red-500" /> : <Minus className="w-4 h-4" />}
-                    </button>
-                    <span className="w-6 text-center font-bold text-stone-800">{item.quantity}</span>
-                    <button
-                      onClick={() => updateCartQuantity(item.product.id, 1)}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 text-stone-600 transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <CartItem key={item.product.id} item={item} onUpdate={handleUpdateQty} />
             ))
           )}
         </div>
@@ -226,10 +205,10 @@ export default function POSPage() {
             onClick={handleCheckoutClick}
             disabled={cart.length === 0 || checkingOut}
             className={clsx(
-              "w-full py-5 rounded-2xl font-bold text-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2",
+              "w-full py-5 rounded-2xl font-bold text-xl flex items-center justify-center gap-2",
               confirming
-                ? "bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/20"
-                : "bg-green-600 hover:bg-green-700 disabled:bg-stone-300 disabled:cursor-not-allowed text-white shadow-lg shadow-green-600/20"
+                ? "bg-green-700 text-white"
+                : "bg-green-600 disabled:bg-stone-300 disabled:cursor-not-allowed text-white"
             )}
           >
             {checkingOut ? (
@@ -241,7 +220,7 @@ export default function POSPage() {
           {confirming && !checkingOut && (
             <button
               onClick={() => setConfirming(false)}
-              className="w-full mt-2 py-2 text-stone-500 hover:text-stone-700 text-sm font-medium transition-colors"
+              className="w-full mt-2 py-2 text-stone-500 text-sm font-medium"
             >
               გაუქმება
             </button>
@@ -251,3 +230,35 @@ export default function POSPage() {
     </div>
   );
 }
+
+// Memoized cart row — only re-renders when its own quantity changes,
+// not when other items are added to the cart.
+const CartItem = memo(({ item, onUpdate }: {
+  item: { product: Product; quantity: number };
+  onUpdate: (id: string, delta: number) => void;
+}) => (
+  <div className="flex flex-col p-3 bg-stone-50 rounded-xl border border-stone-100">
+    <div className="flex justify-between items-start mb-2">
+      <h4 className="font-bold text-stone-800 pr-2 text-sm leading-tight">{item.product.name}</h4>
+      <span className="font-bold text-stone-900 text-sm whitespace-nowrap">{(item.product.price * item.quantity).toFixed(2)}₾</span>
+    </div>
+    <div className="flex items-center justify-between">
+      <span className="text-stone-500 text-xs">{item.product.price}₾ / ცალი</span>
+      <div className="flex items-center gap-2 bg-white rounded-lg border border-stone-200 p-0.5">
+        <button
+          onClick={() => onUpdate(item.product.id, -1)}
+          className="w-7 h-7 flex items-center justify-center rounded-md text-stone-600"
+        >
+          {item.quantity === 1 ? <Trash2 className="w-3.5 h-3.5 text-red-500" /> : <Minus className="w-3.5 h-3.5" />}
+        </button>
+        <span className="w-5 text-center font-bold text-stone-800 text-sm">{item.quantity}</span>
+        <button
+          onClick={() => onUpdate(item.product.id, 1)}
+          className="w-7 h-7 flex items-center justify-center rounded-md text-stone-600"
+        >
+          <Plus className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  </div>
+));
