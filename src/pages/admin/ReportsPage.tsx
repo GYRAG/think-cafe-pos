@@ -164,7 +164,7 @@ export default function ReportsPage() {
 
   // --- Ingredients Bought Aggregation ---
   const ingredientsBoughtData = useMemo(() => {
-    const filteredPurchases = purchases.filter(p => isDateInRange(p.created_at) && p.type === 'ingredient');
+    const filteredPurchases = purchases.filter(p => isDateInRange(p.created_at));
     const ingMap = new Map<string, { name: string; quantity: number; unit: string; total: number; avg_price: number }>();
 
     filteredPurchases.forEach(p => {
