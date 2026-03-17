@@ -12,7 +12,7 @@ export default function ReportsPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,18 +46,18 @@ export default function ReportsPage() {
   const isDateInRange = (dateStr: string) => {
     if (!dateStr) return false;
     const d = parseISO(dateStr);
-    
+
     if (period === 'all_time') return true;
     if (period === 'today') return isToday(d);
     if (period === 'this_week') return isThisWeek(d, { weekStartsOn: 1 });
     if (period === 'this_month') return isThisMonth(d);
-    
+
     if (period === 'custom') {
       const start = startDate ? startOfDay(parseISO(startDate)) : new Date(0);
       const end = endDate ? endOfDay(parseISO(endDate)) : new Date();
       return isWithinInterval(d, { start, end });
     }
-    
+
     return false;
   };
 
@@ -68,7 +68,7 @@ export default function ReportsPage() {
     const filteredPurchases = purchases.filter(p => isDateInRange(p.created_at));
 
     const salesTotal = filteredOrders.reduce((sum, o) => sum + o.total_revenue, 0);
-    
+
     const ingredientsCost = filteredPurchases
       .filter(p => p.type === 'ingredient')
       .reduce((sum, p) => sum + p.total, 0);
@@ -78,7 +78,7 @@ export default function ReportsPage() {
       .reduce((sum, p) => sum + p.total, 0);
 
     const directExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
-    
+
     const otherCost = manualCost + directExpenses;
     const totalPurchasesAndExpenses = ingredientsCost + otherCost;
 
@@ -111,7 +111,7 @@ export default function ReportsPage() {
     }
 
     const dataMap = new Map<string, { label: string; rawSortKey: string; შემოსავალი: number; მოგება: number; ხარჯი: number }>();
-    
+
     const ensureEntry = (dateStr: string) => {
       const d = parseISO(dateStr);
       const key = isDaily ? format(d, 'yyyy-MM-dd') : format(d, 'yyyy-MM');
@@ -151,7 +151,7 @@ export default function ReportsPage() {
   const productsSoldData = useMemo(() => {
     const filteredSales = sales.filter(s => isDateInRange(s.timestamp));
     const prodMap = new Map<string, { name: string; quantity: number; revenue: number }>();
-    
+
     filteredSales.forEach(sale => {
       const existing = prodMap.get(sale.product_id) || { name: sale.product_name || 'უცნობი', quantity: 0, revenue: 0 };
       existing.quantity += sale.quantity;
@@ -166,7 +166,7 @@ export default function ReportsPage() {
   const ingredientsBoughtData = useMemo(() => {
     const filteredPurchases = purchases.filter(p => isDateInRange(p.created_at) && p.type === 'ingredient');
     const ingMap = new Map<string, { name: string; quantity: number; unit: string; total: number; avg_price: number }>();
-    
+
     filteredPurchases.forEach(p => {
       const existing = ingMap.get(p.ingredient_id || p.name) || { name: p.name, quantity: 0, unit: p.unit || 'ცალი', total: 0, avg_price: 0 };
       existing.quantity += p.quantity;
@@ -256,14 +256,14 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-8">
-      
+
       {/* --- HEADER & CONTROLS --- */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-stone-800">რეპორტები</h1>
           <p className="text-stone-500 mt-1">ფინანსური და გაყიდვების დეტალური ანალიტიკა</p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <button onClick={handleExportCSV} className="flex items-center gap-2 px-4 py-2 bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 rounded-xl font-bold transition-colors shadow-sm">
             <Download className="w-4 h-4" /> CSV
@@ -280,18 +280,18 @@ export default function ReportsPage() {
         <button onClick={() => setPeriod('this_week')} className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${period === 'this_week' ? 'bg-green-600 text-white' : 'text-stone-600 hover:bg-stone-50'}`}>ეს კვირა</button>
         <button onClick={() => setPeriod('this_month')} className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${period === 'this_month' ? 'bg-green-600 text-white' : 'text-stone-600 hover:bg-stone-50'}`}>ეს თვე</button>
         <button onClick={() => setPeriod('all_time')} className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${period === 'all_time' ? 'bg-green-600 text-white' : 'text-stone-600 hover:bg-stone-50'}`}>სრული დრო</button>
-        
+
         <div className="w-px h-6 bg-stone-200 mx-2"></div>
-        
+
         <button onClick={() => setPeriod('custom')} className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl transition-all ${period === 'custom' ? 'bg-green-600 text-white' : 'text-stone-600 hover:bg-stone-50'}`}>
           <CalendarIcon className="w-4 h-4" /> მორგებული
         </button>
 
         {period === 'custom' && (
           <div className="flex items-center gap-2 ml-2">
-            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="px-3 py-1.5 text-sm rounded-lg border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none"/>
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="px-3 py-1.5 text-sm rounded-lg border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none" />
             <span className="text-stone-400">-</span>
-            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="px-3 py-1.5 text-sm rounded-lg border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none"/>
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="px-3 py-1.5 text-sm rounded-lg border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none" />
           </div>
         )}
       </div>
@@ -301,7 +301,7 @@ export default function ReportsPage() {
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-100 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-bold text-stone-500">შეძენები</h3>
+              <h3 className="font-bold text-stone-500">ხარჯები</h3>
               <div className="bg-red-50 p-2 rounded-xl text-red-600"><TrendingDown className="w-5 h-5" /></div>
             </div>
             <div className="text-4xl font-black text-red-600">{summaryData.purchases.toFixed(2)}₾</div>
@@ -355,7 +355,7 @@ export default function ReportsPage() {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} dy={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} dx={-10} />
-                <Tooltip cursor={{ fill: '#f3f4f6' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}/>
+                <Tooltip cursor={{ fill: '#f3f4f6' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                 <Bar dataKey="შემოსავალი" fill="#16a34a" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="ხარჯი" fill="#dc2626" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -371,7 +371,7 @@ export default function ReportsPage() {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} dy={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} dx={-10} />
-                <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}/>
+                <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                 <Line type="monotone" dataKey="წმინდა მოგება" stroke="#2563eb" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>

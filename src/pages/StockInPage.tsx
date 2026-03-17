@@ -32,7 +32,7 @@ export default function StockInPage() {
   const [manTotal, setManTotal] = useState('');
 
   // Numpad State
-  const [numpadTarget, setNumpadTarget] = useState<'ingPrice' | 'manTotal' | null>(null);
+  const [numpadTarget, setNumpadTarget] = useState<'ingPrice' | 'manQuantity' | 'manTotal' | null>(null);
   const [numpadValue, setNumpadValue] = useState('');
 
   const handleNumpadInput = (val: string) => {
@@ -53,11 +53,42 @@ export default function StockInPage() {
   const handleNumpadConfirm = () => {
     if (numpadTarget === 'ingPrice') {
       setIngPricePerUnit(numpadValue);
+    } else if (numpadTarget === 'manQuantity') {
+      setManQuantity(numpadValue);
     } else if (numpadTarget === 'manTotal') {
       setManTotal(numpadValue);
     }
     setNumpadTarget(null);
   };
+
+  // Keyboard State
+  const [keyboardTarget, setKeyboardTarget] = useState<'manName' | null>(null);
+  const [keyboardValue, setKeyboardValue] = useState('');
+
+  const handleKeyboardInput = (val: string) => {
+    if (val === 'backspace') {
+      setKeyboardValue(prev => prev.slice(0, -1));
+    } else if (val === 'space') {
+      setKeyboardValue(prev => prev + ' ');
+    } else {
+      setKeyboardValue(prev => prev + val);
+    }
+  };
+
+  const handleKeyboardConfirm = () => {
+    if (keyboardTarget === 'manName') {
+      setManName(keyboardValue);
+    }
+    setKeyboardTarget(null);
+  };
+
+  // Layout for Georgian Keyboard
+  const GEO_KEYBOARD = [
+    ['ქ', 'წ', 'ე', 'რ', 'ტ', 'ყ', 'უ', 'ი', 'ო', 'პ'],
+    ['ა', 'ს', 'დ', 'ფ', 'გ', 'ჰ', 'ჯ', 'კ', 'ლ', 'ჭ'],
+    ['ზ', 'ხ', 'ც', 'ვ', 'ბ', 'ნ', 'მ', 'ღ', 'თ', 'ჟ'],
+    ['შ', 'ძ', 'ჩ', 'space', 'backspace']
+  ];
 
   // Draft persistence using standard localStorage
   useEffect(() => {
@@ -271,25 +302,25 @@ export default function StockInPage() {
               <div className="space-y-5 flex-1">
                 <div>
                   <label className="block text-sm font-bold text-stone-700 mb-2">პროდუქტის სახელი</label>
-                  <input
-                    type="text"
-                    value={manName}
-                    onChange={e => setManName(e.target.value)}
-                    placeholder="მაგ. საწმენდი საშუალებები"
-                    className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none font-medium"
-                  />
+                  <div 
+                    onClick={() => { setKeyboardValue(manName); setKeyboardTarget('manName'); }}
+                    className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 cursor-pointer font-medium flex items-center transition-colors min-h-[50px]"
+                  >
+                    <span className={manName ? 'text-stone-900' : 'text-stone-400'}>
+                      {manName || 'მაგ. საწმენდი საშუალებები'}
+                    </span>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-stone-700 mb-2">რაოდენობა (ცალი / შეკვრა)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={manQuantity}
-                    onChange={e => setManQuantity(e.target.value)}
-                    placeholder="1"
-                    className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none font-medium"
-                  />
+                  <div 
+                    onClick={() => { setNumpadValue(manQuantity); setNumpadTarget('manQuantity'); }}
+                    className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 cursor-pointer font-medium flex items-center transition-colors"
+                  >
+                    <span className={manQuantity ? 'text-stone-900' : 'text-stone-400'}>
+                      {manQuantity || '0'}
+                    </span>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-stone-700 mb-2">მთლიანი ფასი (₾)</label>
@@ -407,7 +438,8 @@ export default function StockInPage() {
           <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-6 flex flex-col transform transition-all duration-200 scale-100">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-stone-800">
-                {numpadTarget === 'ingPrice' ? 'ერთეულის ფასი' : 'მთლიანი ფასი'}
+                {numpadTarget === 'ingPrice' ? 'ერთეულის ფასი' : 
+                 numpadTarget === 'manQuantity' ? 'რაოდენობა' : 'მთლიანი ფასი'}
               </h3>
               <button onClick={() => setNumpadTarget(null)} className="p-2 text-stone-400 hover:bg-stone-100 rounded-full transition-colors">
                 <X className="w-6 h-6" />
@@ -417,7 +449,9 @@ export default function StockInPage() {
             <div className="mb-6 bg-stone-100/50 border border-stone-200/50 rounded-2xl p-5 text-right flex items-center justify-end overflow-hidden">
               <span className="text-5xl font-black text-stone-800 tracking-tight select-none flex items-baseline">
                 {numpadValue || '0'}
-                <span className="text-2xl text-stone-400 ml-1 font-bold">₾</span>
+                <span className="text-2xl text-stone-400 ml-1 font-bold">
+                  {numpadTarget === 'manQuantity' ? '' : '₾'}
+                </span>
               </span>
             </div>
 
@@ -453,6 +487,76 @@ export default function StockInPage() {
             
             <button
               onClick={handleNumpadConfirm}
+              className="mt-6 w-full py-5 text-xl font-black text-white bg-green-600 hover:bg-green-700 rounded-2xl transition-all shadow-lg shadow-green-600/20 active:scale-95"
+            >
+              დადასტურება
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Keyboard Modal */}
+      {keyboardTarget && (
+        <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-end justify-center sm:items-center sm:p-4">
+          <div className="bg-white rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl w-full max-w-4xl p-6 flex flex-col transform transition-all duration-200">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-stone-800">
+                შეიყვანეთ პროდუქტის სახელი
+              </h3>
+              <button onClick={() => setKeyboardTarget(null)} className="p-2 text-stone-400 hover:bg-stone-100 rounded-full transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="mb-6 bg-stone-100/50 border border-stone-200/50 rounded-2xl p-5 text-left flex items-center justify-start overflow-hidden overflow-x-auto min-h-[80px]">
+              <span className="text-3xl font-black text-stone-800 tracking-tight select-none">
+                {keyboardValue}
+                {!keyboardValue && <span className="text-stone-400 animate-pulse">|</span>}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {GEO_KEYBOARD.map((row, rIdx) => (
+                <div key={rIdx} className="flex justify-center gap-2">
+                  {row.map((key, kIdx) => {
+                    if (key === 'space') {
+                      return (
+                        <button
+                          key={kIdx}
+                          onClick={() => handleKeyboardInput(key)}
+                          className="h-14 flex-[3] text-lg font-bold text-stone-800 bg-stone-100 hover:bg-stone-200 rounded-xl transition-all active:scale-95 active:bg-stone-300 shadow-sm"
+                        >
+                          გამოტოვება
+                        </button>
+                      );
+                    }
+                    if (key === 'backspace') {
+                      return (
+                        <button
+                          key={kIdx}
+                          onClick={() => handleKeyboardInput(key)}
+                          className="h-14 flex-1 min-w-[60px] text-lg font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-all active:scale-95 active:bg-red-200 shadow-sm flex items-center justify-center"
+                        >
+                          <Delete className="w-6 h-6" />
+                        </button>
+                      );
+                    }
+                    return (
+                      <button
+                        key={kIdx}
+                        onClick={() => handleKeyboardInput(key)}
+                        className="h-14 flex-1 min-w-[40px] max-w-[60px] text-xl font-bold text-stone-800 bg-stone-100 hover:bg-stone-200 rounded-xl transition-all active:scale-95 active:bg-stone-300 shadow-sm"
+                      >
+                        {key}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+            
+            <button
+              onClick={handleKeyboardConfirm}
               className="mt-6 w-full py-5 text-xl font-black text-white bg-green-600 hover:bg-green-700 rounded-2xl transition-all shadow-lg shadow-green-600/20 active:scale-95"
             >
               დადასტურება
