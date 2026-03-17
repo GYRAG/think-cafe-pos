@@ -1,7 +1,7 @@
 import { Outlet, Link } from 'react-router-dom';
 import { useStore } from '../store';
 import { supabase } from '../lib/supabase';
-import { LogOut, Settings } from 'lucide-react';
+import { LogOut, Settings, Power } from 'lucide-react';
 
 export default function POSLayout() {
   const user = useStore(state => state.user);
@@ -37,6 +37,13 @@ export default function POSLayout() {
           >
             <LogOut className="w-5 h-5" />
             გასვლა
+          </button>
+          <button
+            onClick={() => { if (window.confirm('გათიშვა? / Close app?')) window.close(); }}
+            title="Close app"
+            className="flex items-center gap-2 px-4 py-2 text-stone-500 hover:bg-red-50 hover:text-red-600 rounded-xl font-medium transition-colors"
+          >
+            <Power className="w-5 h-5" />
           </button>
         </div>
       </header>

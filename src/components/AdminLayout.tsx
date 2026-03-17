@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { LogOut, LayoutDashboard, Package, Receipt, BarChart3, Users, ArrowLeft } from 'lucide-react';
+import { LogOut, LayoutDashboard, Package, Receipt, BarChart3, Users, ArrowLeft, Power } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export default function AdminLayout() {
@@ -61,6 +61,14 @@ export default function AdminLayout() {
           >
             <LogOut className="w-5 h-5" />
             გასვლა
+          </button>
+          <button
+            onClick={() => { if (window.confirm('გათიშვა? / Close app?')) window.close(); }}
+            title="Close app"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-stone-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+          >
+            <Power className="w-5 h-5" />
+            დახურვა
           </button>
         </div>
       </aside>

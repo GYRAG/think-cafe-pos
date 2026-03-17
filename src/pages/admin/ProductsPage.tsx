@@ -26,9 +26,10 @@ function SortableTableRow({
   onEdit, 
   onDelete 
 }: { 
+  key?: React.Key | null;
   product: Product; 
-  onEdit: (p: Product) => void;
-  onDelete: (id: string) => void;
+  onEdit: (p?: Product) => void;
+  onDelete: (id: string) => void | Promise<void>;
 }) {
   const {
     attributes,
@@ -210,7 +211,7 @@ export default function ProductsPage() {
       const oldIndex = products.findIndex((p) => p.id === active.id);
       const newIndex = products.findIndex((p) => p.id === over.id);
       
-      const newOrderedProducts = arrayMove(products, oldIndex, newIndex);
+      const newOrderedProducts: Product[] = arrayMove(products, oldIndex, newIndex);
       setProducts(newOrderedProducts); // Optimistic UI update
 
       // Compute updates for all products whose index changed to guarantee sort_order matches array index
