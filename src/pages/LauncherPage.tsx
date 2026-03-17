@@ -20,36 +20,41 @@ export default function LauncherPage() {
         გასვლა
       </button>
 
-      <div className="flex flex-col items-center w-full max-w-xl px-6">
+      <div className="flex flex-col items-center w-full max-w-6xl px-6">
         <h1 className="text-[50px] md:text-[60px] font-black tracking-tight text-green-600 mb-12 text-center drop-shadow-sm">
           🍵 კაფის კონტროლი
         </h1>
 
-        <div className="flex flex-col w-full gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 w-full gap-8">
           <Link
             to="/pos"
-            className="w-full py-10 bg-white hover:bg-stone-50 rounded-3xl border border-stone-200 flex flex-col items-center justify-center text-stone-800 transition-all hover:-translate-y-1 active:translate-y-0 shadow-sm hover:shadow-md"
+            className="w-full aspect-[3/4] md:aspect-auto md:h-96 bg-white hover:bg-stone-50 rounded-[2rem] border-2 border-stone-200 flex flex-col items-center justify-center text-stone-800 transition-all hover:-translate-y-2 active:translate-y-0 shadow-sm hover:shadow-xl group"
           >
-            <span className="text-5xl mb-4">🚀</span>
-            <span className="text-2xl md:text-3xl font-black">გაყიდვების გვერდი</span>
+            <span className="text-7xl mb-8 group-hover:scale-110 transition-transform">🚀</span>
+            <span className="text-3xl font-black text-center px-6">გაყიდვების გვერდი</span>
           </Link>
 
           <Link
             to="/stock-in"
-            className="w-full py-10 bg-white hover:bg-stone-50 rounded-3xl border border-stone-200 flex flex-col items-center justify-center text-stone-800 transition-all hover:-translate-y-1 active:translate-y-0 shadow-sm hover:shadow-md"
+            className="w-full aspect-[3/4] md:aspect-auto md:h-96 bg-white hover:bg-stone-50 rounded-[2rem] border-2 border-stone-200 flex flex-col items-center justify-center text-stone-800 transition-all hover:-translate-y-2 active:translate-y-0 shadow-sm hover:shadow-xl group"
           >
-            <span className="text-5xl mb-4">📦</span>
-            <span className="text-2xl md:text-3xl font-black">შევსება / ხარჯები</span>
+            <span className="text-7xl mb-8 group-hover:scale-110 transition-transform">📦</span>
+            <span className="text-3xl font-black text-center px-6">შევსება / ხარჯები</span>
           </Link>
 
-          {user?.role === 'admin' && (
+          {user?.role === 'admin' ? (
             <Link
               to="/admin/reports"
-              className="w-full py-10 bg-white hover:bg-stone-50 rounded-3xl border border-stone-200 flex flex-col items-center justify-center text-stone-800 transition-all hover:-translate-y-1 active:translate-y-0 shadow-sm hover:shadow-md"
+              className="w-full aspect-[3/4] md:aspect-auto md:h-96 bg-white hover:bg-stone-50 rounded-[2rem] border-2 border-stone-200 flex flex-col items-center justify-center text-stone-800 transition-all hover:-translate-y-2 active:translate-y-0 shadow-sm hover:shadow-xl group"
             >
-              <span className="text-5xl mb-4">📊</span>
-              <span className="text-2xl md:text-3xl font-black">ანგარიშები</span>
+              <span className="text-7xl mb-8 group-hover:scale-110 transition-transform">📊</span>
+              <span className="text-3xl font-black text-center px-6">ანგარიშები</span>
             </Link>
+          ) : (
+            <div className="w-full aspect-[3/4] md:aspect-auto md:h-96 rounded-[2rem] border-2 border-dashed border-stone-200 flex flex-col items-center justify-center text-stone-400 opacity-50">
+              <span className="text-7xl mb-8 grayscale">🔒</span>
+              <span className="text-2xl font-black text-center px-6">მხოლოდ ადმინისტრატორებისთვის</span>
+            </div>
           )}
         </div>
       </div>
