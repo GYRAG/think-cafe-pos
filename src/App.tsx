@@ -7,7 +7,9 @@ import { useStore } from './store';
 
 // Critical-path — load eagerly (always needed on first render)
 import POSLayout from './components/POSLayout';
+import LauncherPage from './pages/LauncherPage';
 import POSPage from './pages/POSPage';
+import StockInPage from './pages/StockInPage';
 import LoginPage from './pages/LoginPage';
 
 // Admin pages — lazy loaded, only downloaded when user navigates to /admin
@@ -80,8 +82,12 @@ function App() {
     <Router>
       <Suspense fallback={<PageSpinner />}>
         <Routes>
-          {/* POS — all authenticated users */}
-          <Route path="/" element={<POSLayout />}>
+          {/* General Cashier/Launcher Routes */}
+          <Route path="/" element={<LauncherPage />} />
+          <Route path="/stock-in" element={<StockInPage />} />
+
+          {/* POS Layout for actual POS selling */}
+          <Route path="/pos" element={<POSLayout />}>
             <Route index element={<POSPage />} />
           </Route>
 

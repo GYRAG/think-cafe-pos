@@ -45,6 +45,18 @@ export interface Expense {
   timestamp: string;
 }
 
+export interface Purchase {
+  id: string;
+  type: 'ingredient' | 'manual';
+  ingredient_id?: string;
+  name: string;
+  quantity: number;
+  unit?: string;
+  price_per_unit?: number;
+  total: number;
+  created_at: string;
+}
+
 export interface OrderItem {
   product: Product;
   quantity: number;

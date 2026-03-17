@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Product, Order, Sale, Expense, OrderItem } from '../types';
+import { Product, Order, Sale, Expense, OrderItem, Purchase } from '../types';
 
 // ── Products ──────────────────────────────────────────────────────────
 
@@ -157,3 +157,31 @@ export async function deleteExpense(id: string): Promise<void> {
   const { error } = await supabase.from('expenses').delete().eq('id', id);
   if (error) throw error;
 }
+
+// ── Purchases ─────────────────────────────────────────────────────────
+
+export async function getPurchases(): Promise<Purchase[]> {
+  const { data, error } = await supabase
+    .from('purchases')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(row => ({
+    id: row.id,
+    type: row.type,
+    ingredient_id: row.ingredient_id,
+    name: row.name,
+    quantity: Number(row.quantity),
+    unit: row.unit,
+    price_per_unit: row.price_per_unit ? Number(row.price_per_unit) : undefined,
+    total: Number(row.total),
+    created_at: row.created_at,
+  }));
+}
+
+export async function addPurchases(purchases: Omit<Purchase, 'id' | 'created_at'>[]): Promise<void> {
+  if (purchases.length === 0) return;
+  const { error } = await supabase.from('purchases').insert(purchases);
+  if (error) throw error;
+}
+

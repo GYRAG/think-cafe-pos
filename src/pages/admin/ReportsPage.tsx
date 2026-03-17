@@ -1,10 +1,9 @@
 import { useMemo, useEffect, useState } from 'react';
-import { getOrders, getExpenses, getSales } from '../../lib/db';
-import { Order, Expense, Sale } from '../../types';
+import { getOrders, getExpenses, getSales, getPurchases } from '../../lib/db';
+import { Order, Expense, Sale, Purchase } from '../../types';
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay, isToday, isThisWeek, isThisMonth, subDays } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { Loader2, RotateCcw, Download, FileSpreadsheet, Calendar as CalendarIcon } from 'lucide-react';
-// xlsx is dynamically imported inside handleExportExcel to avoid loading ~800KB on every page visit
+import { Loader2, RotateCcw, Download, FileSpreadsheet, Calendar as CalendarIcon, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 
 type Period = 'today' | 'this_week' | 'this_month' | 'all_time' | 'custom';
 
@@ -12,6 +11,8 @@ export default function ReportsPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,12 +28,13 @@ export default function ReportsPage() {
     setLoading(true);
     setError(null);
     try {
-      const [oData, eData, sData] = await Promise.all([
-        getOrders(), getExpenses(), getSales()
+      const [oData, eData, sData, pData] = await Promise.all([
+        getOrders(), getExpenses(), getSales(), getPurchases()
       ]);
       setOrders(oData);
       setExpenses(eData);
       setSales(sData);
+      setPurchases(pData);
     } catch (err: any) {
       setError(err.message || 'მონაცემების ჩატვირთვა ვერ მოხერხდა');
     } finally {
@@ -59,13 +61,44 @@ export default function ReportsPage() {
     return false;
   };
 
-  // --- Financial Data Aggregation ---
-  const reportData = useMemo(() => {
-    // 1. Filter arrays
+  // --- Summary Cards Data (New Requirement) ---
+  const summaryData = useMemo(() => {
     const filteredOrders = orders.filter(o => isDateInRange(o.timestamp));
     const filteredExpenses = expenses.filter(e => isDateInRange(e.timestamp));
+    const filteredPurchases = purchases.filter(p => isDateInRange(p.created_at));
 
-    // 2. Determine grouping (Daily vs Monthly)
+    const salesTotal = filteredOrders.reduce((sum, o) => sum + o.total_revenue, 0);
+    
+    const ingredientsCost = filteredPurchases
+      .filter(p => p.type === 'ingredient')
+      .reduce((sum, p) => sum + p.total, 0);
+
+    const manualCost = filteredPurchases
+      .filter(p => p.type === 'manual')
+      .reduce((sum, p) => sum + p.total, 0);
+
+    const directExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+    
+    const otherCost = manualCost + directExpenses;
+    const totalPurchasesAndExpenses = ingredientsCost + otherCost;
+
+    const profit = salesTotal - totalPurchasesAndExpenses;
+
+    return {
+      sales: salesTotal,
+      purchases: totalPurchasesAndExpenses,
+      profit,
+      ingredientsCost,
+      otherCost
+    };
+  }, [orders, expenses, purchases, period, startDate, endDate]);
+
+  // --- Financial Data Aggregation ---
+  const reportData = useMemo(() => {
+    const filteredOrders = orders.filter(o => isDateInRange(o.timestamp));
+    const filteredExpenses = expenses.filter(e => isDateInRange(e.timestamp));
+    const filteredPurchases = purchases.filter(p => isDateInRange(p.created_at));
+
     let isDaily = true;
     if (period === 'all_time') {
       isDaily = false;
@@ -73,49 +106,50 @@ export default function ReportsPage() {
       if (startDate && endDate) {
         const diffTime = Math.abs(new Date(endDate).getTime() - new Date(startDate).getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        if (diffDays > 45) isDaily = false; // More than 45 days span = group by month
+        if (diffDays > 45) isDaily = false;
       }
     }
 
     const dataMap = new Map<string, { label: string; rawSortKey: string; შემოსავალი: number; მოგება: number; ხარჯი: number }>();
     
-    filteredOrders.forEach(order => {
-      const d = parseISO(order.timestamp);
+    const ensureEntry = (dateStr: string) => {
+      const d = parseISO(dateStr);
       const key = isDaily ? format(d, 'yyyy-MM-dd') : format(d, 'yyyy-MM');
       const label = isDaily ? format(d, 'd MMM yyyy') : format(d, 'MMM yyyy');
-      
       if (!dataMap.has(key)) dataMap.set(key, { rawSortKey: key, label, შემოსავალი: 0, მოგება: 0, ხარჯი: 0 });
-      const entry = dataMap.get(key)!;
+      return dataMap.get(key)!;
+    };
+
+    filteredOrders.forEach(order => {
+      const entry = ensureEntry(order.timestamp);
       entry.შემოსავალი += order.total_revenue;
-      entry.მოგება += order.total_profit;
+      entry.მოგება += order.total_profit; // This is product markup profit
     });
 
     filteredExpenses.forEach(expense => {
-      const d = parseISO(expense.timestamp);
-      const key = isDaily ? format(d, 'yyyy-MM-dd') : format(d, 'yyyy-MM');
-      const label = isDaily ? format(d, 'd MMM yyyy') : format(d, 'MMM yyyy');
-      
-      if (!dataMap.has(key)) dataMap.set(key, { rawSortKey: key, label, შემოსავალი: 0, მოგება: 0, ხარჯი: 0 });
-      dataMap.get(key)!.ხარჯი += expense.amount;
+      const entry = ensureEntry(expense.timestamp);
+      entry.ხარჯი += expense.amount;
     });
 
-    const result = Array.from(dataMap.values())
+    filteredPurchases.forEach(purchase => {
+      const entry = ensureEntry(purchase.created_at);
+      entry.ხარჯი += purchase.total;
+    });
+
+    return Array.from(dataMap.values())
       .sort((a, b) => a.rawSortKey.localeCompare(b.rawSortKey))
       .map(value => ({
         name: value.label,
         შემოსავალი: value.შემოსავალი,
         მოგება: value.მოგება,
         ხარჯი: value.ხარჯი,
-        'წმინდა მოგება': value.მოგება - value.ხარჯი
+        'წმინდა მოგება': value.შემოსავალი - value.ხარჯი // Actual profit = Revenue - All expenses
       }));
-
-    return result;
-  }, [orders, expenses, period, startDate, endDate]);
+  }, [orders, expenses, purchases, period, startDate, endDate]);
 
   // --- Products Sold Aggregation ---
   const productsSoldData = useMemo(() => {
     const filteredSales = sales.filter(s => isDateInRange(s.timestamp));
-    
     const prodMap = new Map<string, { name: string; quantity: number; revenue: number }>();
     
     filteredSales.forEach(sale => {
@@ -125,26 +159,23 @@ export default function ReportsPage() {
       prodMap.set(sale.product_id, existing);
     });
 
-    return Array.from(prodMap.values())
-      .sort((a, b) => b.quantity - a.quantity);
+    return Array.from(prodMap.values()).sort((a, b) => b.quantity - a.quantity);
   }, [sales, period, startDate, endDate]);
 
   const handleExportCSV = () => {
     const BOM = '\uFEFF';
-    const headers = ['პერიოდი', 'შემოსავალი', 'პროდუქტის მოგება', 'ხარჯები', 'წმინდა მოგება'];
+    const headers = ['პერიოდი', 'შემოსავალი', 'ხარჯები', 'წმინდა მოგება'];
     const rows = reportData.map(row => [
       row.name,
       row.შემოსავალი.toFixed(2),
-      row.მოგება.toFixed(2),
       row.ხარჯი.toFixed(2),
       row['წმინდა მოგება'].toFixed(2)
     ]);
-    
     const csvContent = BOM + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `financials_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.download = `reports_${format(new Date(), 'yyyy-MM-dd')}.csv`;
     link.click();
   };
 
@@ -152,40 +183,24 @@ export default function ReportsPage() {
     const XLSX = await import('xlsx');
     const workbook = XLSX.utils.book_new();
 
-    // 1. Financials Sheet
     const finData = reportData.map(row => ({
       'პერიოდი': row.name,
       'შემოსავალი': Number(row.შემოსავალი.toFixed(2)),
-      'პროდუქტის მოგება': Number(row.მოგება.toFixed(2)),
       'ხარჯები': Number(row.ხარჯი.toFixed(2)),
       'წმინდა მოგება': Number(row['წმინდა მოგება'].toFixed(2))
     }));
     const wsFin = XLSX.utils.json_to_sheet(finData);
-    wsFin['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 20 }];
-    XLSX.utils.book_append_sheet(workbook, wsFin, 'ფინანსური რეპორტი');
+    wsFin['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+    XLSX.utils.book_append_sheet(workbook, wsFin, 'ფინანსები');
 
-    // 2. Products Sheet
     const prodData = productsSoldData.map(p => ({
       'პროდუქტის სახელი': p.name,
-      'რაოდენობა (ცალი)': p.quantity,
-      'საერთო შემოსავალი (₾)': Number(p.revenue.toFixed(2))
+      'რაოდენობა': p.quantity,
+      'შემოსავალი': Number(p.revenue.toFixed(2))
     }));
     const wsProd = XLSX.utils.json_to_sheet(prodData);
-    wsProd['!cols'] = [{ wch: 30 }, { wch: 20 }, { wch: 25 }];
-    XLSX.utils.book_append_sheet(workbook, wsProd, 'გაყიდული პროდუქტები');
-
-    // 3. Detailed Expenses Sheet
-    const filteredExpenses = expenses.filter(e => isDateInRange(e.timestamp));
-    const expData = filteredExpenses.map(e => ({
-      'თარიღი': format(parseISO(e.timestamp), 'yyyy-MM-dd HH:mm'),
-      'დასახელება': e.title,
-      'კატეგორია': e.category,
-      'თანხა (₾)': Number(e.amount.toFixed(2)),
-      'შენიშვნა': e.notes || ''
-    }));
-    const wsExp = XLSX.utils.json_to_sheet(expData);
-    wsExp['!cols'] = [{ wch: 18 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 35 }];
-    XLSX.utils.book_append_sheet(workbook, wsExp, 'დეტალური ხარჯები');
+    wsProd['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 20 }];
+    XLSX.utils.book_append_sheet(workbook, wsProd, 'გაყიდვები');
 
     XLSX.writeFile(workbook, `full_report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
@@ -244,17 +259,66 @@ export default function ReportsPage() {
 
         {period === 'custom' && (
           <div className="flex items-center gap-2 ml-2">
-            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="px-3 py-1.5 text-sm rounded-lg border border-stone-200 focus:ring-2 focus:ring-orange-500 outline-none"/>
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="px-3 py-1.5 text-sm rounded-lg border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none"/>
             <span className="text-stone-400">-</span>
-            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="px-3 py-1.5 text-sm rounded-lg border border-stone-200 focus:ring-2 focus:ring-orange-500 outline-none"/>
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="px-3 py-1.5 text-sm rounded-lg border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none"/>
           </div>
         )}
+      </div>
+
+      {/* --- SUMMARY CARDS --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-100 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-bold text-stone-500">შეძენები</h3>
+              <div className="bg-red-50 p-2 rounded-xl text-red-600"><TrendingDown className="w-5 h-5" /></div>
+            </div>
+            <div className="text-4xl font-black text-red-600">{summaryData.purchases.toFixed(2)}₾</div>
+          </div>
+          <div className="mt-6 pt-4 border-t border-stone-100 flex flex-col gap-2 text-sm">
+            <div className="flex justify-between items-center">
+              <span className="text-stone-500">ინგრედიენტები:</span>
+              <span className="font-bold text-stone-800">{summaryData.ingredientsCost.toFixed(2)}₾</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-stone-500">სხვა ხარჯები:</span>
+              <span className="font-bold text-stone-800">{summaryData.otherCost.toFixed(2)}₾</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-100 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-bold text-stone-500">გაყიდვები</h3>
+              <div className="bg-green-50 p-2 rounded-xl text-green-600"><TrendingUp className="w-5 h-5" /></div>
+            </div>
+            <div className="text-4xl font-black text-green-600">{summaryData.sales.toFixed(2)}₾</div>
+          </div>
+          <div className="mt-6 pt-4 border-t border-stone-100 text-sm text-stone-500">
+            ჯამური შემოსავალი გაყიდული პროდუქტებიდან
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-100 flex flex-col justify-between text-white" style={{ background: 'linear-gradient(to right bottom, #2563eb, #1d4ed8)' }}>
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-bold text-blue-100">მოგება</h3>
+              <div className="bg-white/20 p-2 rounded-xl"><Wallet className="w-5 h-5" /></div>
+            </div>
+            <div className="text-4xl font-black">{summaryData.profit.toFixed(2)}₾</div>
+          </div>
+          <div className="mt-6 pt-4 border-t border-white/20 text-sm text-blue-100">
+            სავარაუდო სუფთა მოგება
+          </div>
+        </div>
       </div>
 
       {/* --- CHARTS --- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-stone-100">
-          <h2 className="text-xl font-bold text-stone-800 mb-6">შემოსავალი და მოგება</h2>
+          <h2 className="text-xl font-bold text-stone-800 mb-6">შემოსავალი და ხარჯი</h2>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={reportData}>
@@ -263,7 +327,7 @@ export default function ReportsPage() {
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} dx={-10} />
                 <Tooltip cursor={{ fill: '#f3f4f6' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}/>
                 <Bar dataKey="შემოსავალი" fill="#16a34a" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="მოგება" fill="#16a34a" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="ხარჯი" fill="#dc2626" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -287,11 +351,9 @@ export default function ReportsPage() {
 
       {/* --- TABLES --- */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        
-        {/* Financial Table */}
         <div className="bg-white rounded-3xl shadow-sm border border-stone-100 overflow-hidden flex flex-col h-[500px]">
           <div className="p-6 border-b border-stone-100 shrink-0">
-            <h2 className="text-xl font-bold text-stone-800">ფინანსური შეჯამება</h2>
+            <h2 className="text-xl font-bold text-stone-800">წმინდა მოგების რეპორტი</h2>
           </div>
           <div className="overflow-auto flex-1 p-0">
             <table className="w-full text-left border-collapse">
@@ -322,7 +384,6 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {/* Products Table */}
         <div className="bg-white rounded-3xl shadow-sm border border-stone-100 overflow-hidden flex flex-col h-[500px]">
           <div className="p-6 border-b border-stone-100 shrink-0">
             <h2 className="text-xl font-bold text-stone-800">გაყიდული პროდუქტები</h2>

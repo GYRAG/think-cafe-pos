@@ -1,7 +1,7 @@
 import { Outlet, Link } from 'react-router-dom';
 import { useStore } from '../store';
 import { supabase } from '../lib/supabase';
-import { LogOut, Settings, Power } from 'lucide-react';
+import { LogOut, Settings, Power, Home } from 'lucide-react';
 
 export default function POSLayout() {
   const user = useStore(state => state.user);
@@ -12,7 +12,11 @@ export default function POSLayout() {
       {/* Top Bar */}
       <header className="h-16 bg-white border-b border-stone-200 flex items-center justify-between px-6 shrink-0">
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
+          <Link to="/" className="p-2 text-stone-500 hover:bg-stone-100 hover:text-green-600 rounded-xl transition-colors shrink-0" title="მთავარ გვერდზე დაბრუნება">
+            <Home className="w-6 h-6" />
+          </Link>
+          <div className="hidden sm:block w-px h-6 bg-stone-200"></div>
+          <div className="flex items-center gap-2 hidden sm:flex">
             <img src="./src/assets/logo-think-corner.jpg" alt="ფიქრის კუთხე" className="w-8 h-8 rounded-lg object-cover shadow-sm" />
             <h1 className="text-xl font-black text-stone-800 tracking-tight">ფიქრის კუთხე</h1>
           </div>
