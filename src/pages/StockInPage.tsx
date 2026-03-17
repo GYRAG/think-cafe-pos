@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, Plus, Save, X, Loader2 } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Save, X, Loader2, Delete } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { addPurchases } from '../lib/db';
 import { Purchase } from '../types';
@@ -30,6 +30,34 @@ export default function StockInPage() {
   const [manName, setManName] = useState('');
   const [manQuantity, setManQuantity] = useState('');
   const [manTotal, setManTotal] = useState('');
+
+  // Numpad State
+  const [numpadTarget, setNumpadTarget] = useState<'ingPrice' | 'manTotal' | null>(null);
+  const [numpadValue, setNumpadValue] = useState('');
+
+  const handleNumpadInput = (val: string) => {
+    if (val === 'backspace') {
+      setNumpadValue(prev => prev.slice(0, -1));
+    } else if (val === '.') {
+      if (!numpadValue.includes('.')) setNumpadValue(prev => prev + '.');
+    } else {
+      // Limit to 2 decimal places if there's a decimal
+      if (numpadValue.includes('.')) {
+        const parts = numpadValue.split('.');
+        if (parts[1].length >= 2) return;
+      }
+      setNumpadValue(prev => prev + val);
+    }
+  };
+
+  const handleNumpadConfirm = () => {
+    if (numpadTarget === 'ingPrice') {
+      setIngPricePerUnit(numpadValue);
+    } else if (numpadTarget === 'manTotal') {
+      setManTotal(numpadValue);
+    }
+    setNumpadTarget(null);
+  };
 
   // Draft persistence using standard localStorage
   useEffect(() => {
@@ -213,15 +241,14 @@ export default function StockInPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-stone-700 mb-2">ერთეულის ფასი (₾)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={ingPricePerUnit}
-                    onChange={e => setIngPricePerUnit(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none font-medium"
-                  />
+                  <div 
+                    onClick={() => { setNumpadValue(ingPricePerUnit); setNumpadTarget('ingPrice'); }}
+                    className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 cursor-pointer font-medium flex items-center transition-colors"
+                  >
+                    <span className={ingPricePerUnit ? 'text-stone-900' : 'text-stone-400'}>
+                      {ingPricePerUnit || '0.00'}
+                    </span>
+                  </div>
                 </div>
                 
                 <div className="pt-4 border-t border-stone-100 mt-auto">
@@ -266,15 +293,14 @@ export default function StockInPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-stone-700 mb-2">მთლიანი ფასი (₾)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={manTotal}
-                    onChange={e => setManTotal(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none font-medium"
-                  />
+                  <div 
+                    onClick={() => { setNumpadValue(manTotal); setNumpadTarget('manTotal'); }}
+                    className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 cursor-pointer font-medium flex items-center transition-colors"
+                  >
+                    <span className={manTotal ? 'text-stone-900' : 'text-stone-400'}>
+                      {manTotal || '0.00'}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="pt-4 border-t border-stone-100 mt-auto">
@@ -374,6 +400,67 @@ export default function StockInPage() {
         </div>
 
       </div>
+
+      {/* Numpad Modal */}
+      {numpadTarget && (
+        <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-6 flex flex-col transform transition-all duration-200 scale-100">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-stone-800">
+                {numpadTarget === 'ingPrice' ? 'ერთეულის ფასი' : 'მთლიანი ფასი'}
+              </h3>
+              <button onClick={() => setNumpadTarget(null)} className="p-2 text-stone-400 hover:bg-stone-100 rounded-full transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="mb-6 bg-stone-100/50 border border-stone-200/50 rounded-2xl p-5 text-right flex items-center justify-end overflow-hidden">
+              <span className="text-5xl font-black text-stone-800 tracking-tight select-none flex items-baseline">
+                {numpadValue || '0'}
+                <span className="text-2xl text-stone-400 ml-1 font-bold">₾</span>
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => (
+                <button
+                  key={n}
+                  onClick={() => handleNumpadInput(n.toString())}
+                  className="h-16 text-2xl font-black text-stone-800 bg-stone-100 hover:bg-stone-200 rounded-2xl transition-all active:scale-95 active:bg-stone-300 shadow-sm"
+                >
+                  {n}
+                </button>
+              ))}
+              <button
+                onClick={() => handleNumpadInput('.')}
+                className="h-16 text-3xl font-black text-stone-800 bg-stone-100 hover:bg-stone-200 rounded-2xl transition-all active:scale-95 active:bg-stone-300 shadow-sm"
+              >
+                .
+              </button>
+              <button
+                onClick={() => handleNumpadInput('0')}
+                className="h-16 text-2xl font-black text-stone-800 bg-stone-100 hover:bg-stone-200 rounded-2xl transition-all active:scale-95 active:bg-stone-300 shadow-sm"
+              >
+                0
+              </button>
+              <button
+                onClick={() => handleNumpadInput('backspace')}
+                className="h-16 text-2xl font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-2xl transition-all active:scale-95 active:bg-red-200 shadow-sm flex items-center justify-center"
+              >
+                <Delete className="w-7 h-7" />
+              </button>
+            </div>
+            
+            <button
+              onClick={handleNumpadConfirm}
+              className="mt-6 w-full py-5 text-xl font-black text-white bg-green-600 hover:bg-green-700 rounded-2xl transition-all shadow-lg shadow-green-600/20 active:scale-95"
+            >
+              დადასტურება
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
