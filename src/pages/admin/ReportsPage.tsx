@@ -162,6 +162,26 @@ export default function ReportsPage() {
     return Array.from(prodMap.values()).sort((a, b) => b.quantity - a.quantity);
   }, [sales, period, startDate, endDate]);
 
+  // --- Ingredients Bought Aggregation ---
+  const ingredientsBoughtData = useMemo(() => {
+    const filteredPurchases = purchases.filter(p => isDateInRange(p.created_at) && p.type === 'ingredient');
+    const ingMap = new Map<string, { name: string; quantity: number; unit: string; total: number; avg_price: number }>();
+    
+    filteredPurchases.forEach(p => {
+      const existing = ingMap.get(p.ingredient_id || p.name) || { name: p.name, quantity: 0, unit: p.unit || 'ცალი', total: 0, avg_price: 0 };
+      existing.quantity += p.quantity;
+      existing.total += p.total;
+      ingMap.set(p.ingredient_id || p.name, existing);
+    });
+
+    return Array.from(ingMap.values())
+      .map(i => ({
+        ...i,
+        avg_price: i.quantity > 0 ? (i.total / i.quantity) : 0
+      }))
+      .sort((a, b) => b.total - a.total); // sort by total money spent
+  }, [purchases, period, startDate, endDate]);
+
   const handleExportCSV = () => {
     const BOM = '\uFEFF';
     const headers = ['პერიოდი', 'შემოსავალი', 'ხარჯები', 'წმინდა მოგება'];
@@ -201,6 +221,16 @@ export default function ReportsPage() {
     const wsProd = XLSX.utils.json_to_sheet(prodData);
     wsProd['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 20 }];
     XLSX.utils.book_append_sheet(workbook, wsProd, 'გაყიდვები');
+
+    const ingData = ingredientsBoughtData.map(ing => ({
+      'ინგრედიენტი': ing.name,
+      'რაოდენობა': `${ing.quantity} ${ing.unit}`,
+      'საშ. ფასი': Number(ing.avg_price.toFixed(2)),
+      'ჯამში დახარჯული (₾)': Number(ing.total.toFixed(2))
+    }));
+    const wsIng = XLSX.utils.json_to_sheet(ingData);
+    wsIng['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 20 }];
+    XLSX.utils.book_append_sheet(workbook, wsIng, 'შეძენილი ინგრედიენტები');
 
     XLSX.writeFile(workbook, `full_report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
@@ -410,6 +440,42 @@ export default function ReportsPage() {
                 {productsSoldData.length === 0 && (
                   <tr>
                     <td colSpan={4} className="p-8 text-center text-stone-500">გაყიდვები არ მოიძებნა</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Ingredients Bought Table */}
+        <div className="bg-white rounded-3xl shadow-sm border border-stone-100 overflow-hidden flex flex-col h-[500px]">
+          <div className="p-6 border-b border-stone-100 shrink-0">
+            <h2 className="text-xl font-bold text-stone-800">შეძენილი ინგრედიენტები</h2>
+          </div>
+          <div className="overflow-auto flex-1 p-0">
+            <table className="w-full text-left border-collapse">
+              <thead className="sticky top-0 bg-stone-50 shadow-sm z-10">
+                <tr className="border-b border-stone-100 text-stone-500 text-sm uppercase tracking-wider">
+                  <th className="p-4 font-medium whitespace-nowrap w-8">#</th>
+                  <th className="p-4 font-medium whitespace-nowrap">სახელი</th>
+                  <th className="p-4 font-medium whitespace-nowrap text-right">რაოდენობა</th>
+                  <th className="p-4 font-medium whitespace-nowrap text-right">საშ. ფასი</th>
+                  <th className="p-4 font-medium whitespace-nowrap text-right">ჯამი</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {ingredientsBoughtData.map((ing, i) => (
+                  <tr key={i} className="hover:bg-stone-50/50 transition-colors">
+                    <td className="p-4 font-bold text-stone-400">{i + 1}</td>
+                    <td className="p-4 font-bold text-stone-800">{ing.name}</td>
+                    <td className="p-4 text-right font-bold text-stone-900">{ing.quantity} {ing.unit}</td>
+                    <td className="p-4 text-right font-medium text-stone-500">{ing.avg_price.toFixed(2)}₾</td>
+                    <td className="p-4 text-right font-bold text-red-600">{ing.total.toFixed(2)}₾</td>
+                  </tr>
+                ))}
+                {ingredientsBoughtData.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="p-8 text-center text-stone-500">ინგრედიენტები არ მოიძებნა</td>
                   </tr>
                 )}
               </tbody>
