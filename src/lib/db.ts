@@ -196,6 +196,7 @@ export async function getIngredients(): Promise<Ingredient[]> {
   return (data ?? []).map(row => ({
     id: row.id,
     name: row.name,
+    category: row.category,
     unit: row.unit,
     created_at: row.created_at,
   }));
@@ -204,6 +205,7 @@ export async function getIngredients(): Promise<Ingredient[]> {
 export async function addIngredient(ingredient: Omit<Ingredient, 'id' | 'created_at'>): Promise<void> {
   const { error } = await supabase.from('ingredients').insert({
     name: ingredient.name,
+    category: ingredient.category,
     unit: ingredient.unit,
   });
   if (error) throw error;
@@ -212,6 +214,7 @@ export async function addIngredient(ingredient: Omit<Ingredient, 'id' | 'created
 export async function updateIngredient(id: string, ingredient: Partial<Omit<Ingredient, 'id' | 'created_at'>>): Promise<void> {
   const { error } = await supabase.from('ingredients').update({
     name: ingredient.name,
+    category: ingredient.category,
     unit: ingredient.unit,
   }).eq('id', id);
   if (error) throw error;

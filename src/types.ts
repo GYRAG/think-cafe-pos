@@ -60,6 +60,7 @@ export interface Purchase {
 export interface Ingredient {
   id: string;
   name: string;
+  category: string;
   unit: string;
   created_at?: string;
 }

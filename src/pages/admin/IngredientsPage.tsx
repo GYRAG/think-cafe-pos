@@ -10,10 +10,12 @@ export default function IngredientsPage() {
   
   // Forms
   const [newName, setNewName] = useState('');
+  const [newCategory, setNewCategory] = useState('ზოგადი');
   const [newUnit, setNewUnit] = useState('კგ');
   
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [editCategory, setEditCategory] = useState('');
   const [editUnit, setEditUnit] = useState('');
 
   const fetchIngredients = async () => {
@@ -35,10 +37,11 @@ export default function IngredientsPage() {
   const handleAdd = async () => {
     if (!newName.trim() || !newUnit.trim()) return;
     try {
-      await addIngredient({ name: newName.trim(), unit: newUnit.trim() });
+      await addIngredient({ name: newName.trim(), category: newCategory.trim() || 'ზოგადი', unit: newUnit.trim() });
       await fetchIngredients();
       setIsAdding(false);
       setNewName('');
+      setNewCategory('ზოგადი');
       setNewUnit('კგ');
     } catch (err: any) {
       alert(`შეცდომა დამატებისას: ${err?.message}`);
@@ -48,13 +51,14 @@ export default function IngredientsPage() {
   const startEdit = (ing: Ingredient) => {
     setEditingId(ing.id);
     setEditName(ing.name);
+    setEditCategory(ing.category || 'ზოგადი');
     setEditUnit(ing.unit);
   };
 
   const handleSaveEdit = async (id: string) => {
     if (!editName.trim() || !editUnit.trim()) return;
     try {
-      await updateIngredient(id, { name: editName.trim(), unit: editUnit.trim() });
+      await updateIngredient(id, { name: editName.trim(), category: editCategory.trim() || 'ზოგადი', unit: editUnit.trim() });
       await fetchIngredients();
       setEditingId(null);
     } catch (err: any) {
@@ -101,6 +105,16 @@ export default function IngredientsPage() {
             />
           </div>
           <div className="flex-1 w-full">
+            <label className="block text-sm font-bold text-stone-700 mb-2">კატეგორია</label>
+            <input
+              type="text"
+              value={newCategory}
+              onChange={e => setNewCategory(e.target.value)}
+              placeholder="მაგ. ბოსტნეული"
+              className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none font-medium text-stone-800"
+            />
+          </div>
+          <div className="flex-1 w-full">
             <label className="block text-sm font-bold text-stone-700 mb-2">საზომი ერთეული</label>
             <input
               type="text"
@@ -131,6 +145,7 @@ export default function IngredientsPage() {
               <tr>
                 <th className="p-4 w-12 border-b border-stone-100">#</th>
                 <th className="p-4 border-b border-stone-100">დასახელება</th>
+                <th className="p-4 border-b border-stone-100 w-48">კატეგორია</th>
                 <th className="p-4 border-b border-stone-100 w-48">ერთეული</th>
                 <th className="p-4 border-b border-stone-100 w-32 text-right">ქმედება</th>
               </tr>
@@ -147,6 +162,14 @@ export default function IngredientsPage() {
                           type="text"
                           value={editName}
                           onChange={e => setEditName(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border border-stone-300 focus:border-green-500 outline-none font-medium"
+                        />
+                      </td>
+                      <td className="p-4">
+                        <input
+                          type="text"
+                          value={editCategory}
+                          onChange={e => setEditCategory(e.target.value)}
                           className="w-full px-3 py-2 rounded-lg border border-stone-300 focus:border-green-500 outline-none font-medium"
                         />
                       </td>
@@ -170,6 +193,7 @@ export default function IngredientsPage() {
                   ) : (
                     <>
                       <td className="p-4 font-bold text-stone-800">{ing.name}</td>
+                      <td className="p-4 font-medium text-stone-600">{ing.category}</td>
                       <td className="p-4 font-medium text-stone-600">{ing.unit}</td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -187,7 +211,7 @@ export default function IngredientsPage() {
               ))}
               {ingredients.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="p-8 text-center text-stone-500 font-medium">
+                  <td colSpan={5} className="p-8 text-center text-stone-500 font-medium">
                     ინგრედიენტები ვერ მოიძებნა
                   </td>
                 </tr>

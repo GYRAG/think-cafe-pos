@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2, Plus, Save, X, Loader2, Delete } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
-import { addPurchases, getIngredients } from '../lib/db';
+import { addPurchases, getIngredients, getPurchases } from '../lib/db';
 import { Purchase, Ingredient } from '../types';
 
 export default function StockInPage() {
@@ -11,8 +11,18 @@ export default function StockInPage() {
   const [items, setItems] = useState<Partial<Purchase>[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Notification State
+  const [notification, setNotification] = useState<{ 
+    isOpen: boolean; 
+    message: string; 
+    type: 'success' | 'error'; 
+    isConfirm?: boolean; 
+    onConfirm?: () => void 
+  } | null>(null);
+
   // Dynamic Ingredients List
   const [ingredientsList, setIngredientsList] = useState<Ingredient[]>([]);
+  const [categoryGroups, setCategoryGroups] = useState<{ category: string; ingredients: Ingredient[] }[]>([]);
   const [isLoadingIngs, setIsLoadingIngs] = useState(true);
 
   // Form State - Ingredient
@@ -88,9 +98,70 @@ export default function StockInPage() {
   useEffect(() => {
     const fetchIngs = async () => {
       try {
-        const data = await getIngredients();
+        const [data, purchasesData] = await Promise.all([
+          getIngredients(),
+          getPurchases()
+        ]);
+        
+        // Process Recent and Most Used
+        const ingredientPurchases = purchasesData.filter(p => p.type === 'ingredient' && p.ingredient_id);
+        
+        // 1. Most Used
+        const freqMap = new Map<string, number>();
+        ingredientPurchases.forEach(p => {
+          freqMap.set(p.ingredient_id!, (freqMap.get(p.ingredient_id!) || 0) + 1);
+        });
+        const mostUsedIds = Array.from(freqMap.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(e => e[0]);
+
+        // 2. Recently Used
+        const recentIds: string[] = [];
+        for (const p of ingredientPurchases) {
+          if (!recentIds.includes(p.ingredient_id!) && recentIds.length < 5) {
+            recentIds.push(p.ingredient_id!);
+          }
+        }
+
+        // Build groups
+        const groups: { category: string; ingredients: Ingredient[] }[] = [];
+        
+        if (mostUsedIds.length > 0) {
+          groups.push({
+            category: '⭐ ხშირად გამოყენებული',
+            ingredients: mostUsedIds.map(id => data.find(i => i.id === id)!).filter(Boolean)
+          });
+        }
+        
+        if (recentIds.length > 0) {
+          groups.push({
+            category: '🕒 ბოლოს გამოყენებული',
+            ingredients: recentIds.map(id => data.find(i => i.id === id)!).filter(Boolean)
+          });
+        }
+
+        // Standard categories
+        const catMap = new Map<string, Ingredient[]>();
+        data.forEach(ing => {
+          const cat = ing.category || 'ზოგადი';
+          if (!catMap.has(cat)) catMap.set(cat, []);
+          catMap.get(cat)!.push(ing);
+        });
+
+        Array.from(catMap.keys()).sort().forEach(cat => {
+          groups.push({
+            category: cat,
+            ingredients: catMap.get(cat)!
+          });
+        });
+
         setIngredientsList(data);
-        if (data.length > 0) {
+        setCategoryGroups(groups);
+
+        if (groups.length > 0 && groups[0].ingredients.length > 0) {
+          setSelectedIngredient(groups[0].ingredients[0].id);
+        } else if (data.length > 0) {
           setSelectedIngredient(data[0].id);
         }
       } catch (err) {
@@ -168,21 +239,35 @@ export default function StockInPage() {
       await addPurchases(items as Omit<Purchase, 'id' | 'created_at'>[]);
       setItems([]);
       localStorage.removeItem('stock-in-draft');
-      alert('წარმატებით შეინახა!');
-      navigate('/');
+      setNotification({
+        isOpen: true,
+        type: 'success',
+        message: 'წარმატებით შეინახა!'
+      });
+      setTimeout(() => navigate('/'), 1500);
     } catch (err: any) {
-      alert(`შენახვა ვერ მოხერხდა: ${err?.message || 'უცნობი შეცდომა'}`);
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        message: `შენახვა ვერ მოხერხდა: ${err?.message || 'უცნობი შეცდომა'}`
+      });
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleCancel = () => {
-    if (window.confirm('ნამდვილად გსურთ გაუქმება? მონაცემები წაიშლება.')) {
-      setItems([]);
-      localStorage.removeItem('stock-in-draft');
-      navigate('/');
-    }
+    setNotification({
+      isOpen: true,
+      type: 'error',
+      isConfirm: true,
+      message: 'ნამდვილად გსურთ გაუქმება? მონაცემები წაიშლება.',
+      onConfirm: () => {
+        setItems([]);
+        localStorage.removeItem('stock-in-draft');
+        navigate('/');
+      }
+    });
   };
 
   return (
@@ -241,7 +326,16 @@ export default function StockInPage() {
                       onChange={e => setSelectedIngredient(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-stone-800 font-medium bg-white"
                     >
-                      {ingredientsList.map(ing => (
+                      {categoryGroups.map(group => (
+                        <optgroup key={group.category} label={group.category} className="font-bold text-stone-900 bg-stone-50">
+                          {group.ingredients.map(ing => (
+                            <option key={`${group.category}-${ing.id}`} value={ing.id} className="font-medium text-stone-700 bg-white">
+                              {ing.name} ({ing.unit})
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                      {categoryGroups.length === 0 && ingredientsList.map(ing => (
                         <option key={ing.id} value={ing.id}>{ing.name} ({ing.unit})</option>
                       ))}
                     </select>
@@ -574,6 +668,50 @@ export default function StockInPage() {
             >
               დადასტურება
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Notification / Confirm Modal */}
+      {notification?.isOpen && (
+        <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8 flex flex-col items-center text-center transform transition-all duration-200 scale-100">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 ${notification.type === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+              {notification.type === 'success' ? <Save className="w-8 h-8" /> : <Delete className="w-8 h-8" />}
+            </div>
+            <h3 className="text-2xl font-black text-stone-800 tracking-tight mb-2">
+              {notification.type === 'success' ? 'წარმატებული' : 'ყურადღება'}
+            </h3>
+            <p className="text-stone-500 font-medium mb-8 text-lg">
+              {notification.message}
+            </p>
+            
+            {notification.isConfirm ? (
+              <div className="flex gap-4 w-full">
+                <button
+                  onClick={() => setNotification(null)}
+                  className="flex-1 py-4 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold transition-colors"
+                >
+                  არა
+                </button>
+                <button
+                  onClick={() => {
+                    notification.onConfirm?.();
+                    setNotification(null);
+                  }}
+                  className="flex-1 py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-red-600/20"
+                >
+                  დიახ, გაუქმება
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setNotification(null)}
+                className={`w-full py-4 text-white rounded-xl font-bold transition-colors shadow-lg ${notification.type === 'success' ? 'bg-green-600 hover:bg-green-700 shadow-green-600/20' : 'bg-red-600 hover:bg-red-700 shadow-red-600/20'}`}
+              >
+                დახურვა
+              </button>
+            )}
           </div>
         </div>
       )}
