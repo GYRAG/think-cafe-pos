@@ -18,6 +18,7 @@ const DashboardPage = lazy(() => import('./pages/admin/DashboardPage'));
 const ProductsPage  = lazy(() => import('./pages/admin/ProductsPage'));
 const ExpensesPage  = lazy(() => import('./pages/admin/ExpensesPage'));
 const ReportsPage   = lazy(() => import('./pages/admin/ReportsPage'));
+const IngredientsPage = lazy(() => import('./pages/admin/IngredientsPage'));
 const UsersPage     = lazy(() => import('./pages/admin/UsersPage'));
 
 const PageSpinner = () => (
@@ -99,6 +100,7 @@ function App() {
               <Route path="products"  element={<ProductsPage />} />
               <Route path="expenses"  element={<ExpensesPage />} />
               <Route path="reports"   element={<ReportsPage />} />
+              <Route path="ingredients" element={<IngredientsPage />} />
               <Route path="users"     element={<UsersPage />} />
             </Route>
           ) : (

@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Product, Order, Sale, Expense, OrderItem, Purchase } from '../types';
+import { Product, Order, Sale, Expense, OrderItem, Purchase, Ingredient } from '../types';
 
 // ── Products ──────────────────────────────────────────────────────────
 
@@ -184,4 +184,42 @@ export async function addPurchases(purchases: Omit<Purchase, 'id' | 'created_at'
   const { error } = await supabase.from('purchases').insert(purchases);
   if (error) throw error;
 }
+
+// ── Ingredients ───────────────────────────────────────────────────────
+
+export async function getIngredients(): Promise<Ingredient[]> {
+  const { data, error } = await supabase
+    .from('ingredients')
+    .select('*')
+    .order('name', { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map(row => ({
+    id: row.id,
+    name: row.name,
+    unit: row.unit,
+    created_at: row.created_at,
+  }));
+}
+
+export async function addIngredient(ingredient: Omit<Ingredient, 'id' | 'created_at'>): Promise<void> {
+  const { error } = await supabase.from('ingredients').insert({
+    name: ingredient.name,
+    unit: ingredient.unit,
+  });
+  if (error) throw error;
+}
+
+export async function updateIngredient(id: string, ingredient: Partial<Omit<Ingredient, 'id' | 'created_at'>>): Promise<void> {
+  const { error } = await supabase.from('ingredients').update({
+    name: ingredient.name,
+    unit: ingredient.unit,
+  }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteIngredient(id: string): Promise<void> {
+  const { error } = await supabase.from('ingredients').delete().eq('id', id);
+  if (error) throw error;
+}
+
 

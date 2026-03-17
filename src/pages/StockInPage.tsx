@@ -2,18 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2, Plus, Save, X, Loader2, Delete } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
-import { addPurchases } from '../lib/db';
-import { Purchase } from '../types';
-
-const INGREDIENTS = [
-  { id: 'flour', name: 'ფქვილი', unit: 'კგ' },
-  { id: 'cheese', name: 'ყველი', unit: 'კგ' },
-  { id: 'onion', name: 'ხახვი', unit: 'კგ' },
-  { id: 'tomato', name: 'პომიდორი', unit: 'კგ' },
-  { id: 'oil', name: 'ზეთი', unit: 'ლ' },
-  { id: 'sugar', name: 'შაქარი', unit: 'კგ' },
-  { id: 'salt', name: 'მარილი', unit: 'კგ' },
-];
+import { addPurchases, getIngredients } from '../lib/db';
+import { Purchase, Ingredient } from '../types';
 
 export default function StockInPage() {
   const navigate = useNavigate();
@@ -21,8 +11,12 @@ export default function StockInPage() {
   const [items, setItems] = useState<Partial<Purchase>[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Dynamic Ingredients List
+  const [ingredientsList, setIngredientsList] = useState<Ingredient[]>([]);
+  const [isLoadingIngs, setIsLoadingIngs] = useState(true);
+
   // Form State - Ingredient
-  const [selectedIngredient, setSelectedIngredient] = useState(INGREDIENTS[0].id);
+  const [selectedIngredient, setSelectedIngredient] = useState('');
   const [ingQuantity, setIngQuantity] = useState('');
   const [ingPricePerUnit, setIngPricePerUnit] = useState('');
 
@@ -92,6 +86,21 @@ export default function StockInPage() {
 
   // Draft persistence using standard localStorage
   useEffect(() => {
+    const fetchIngs = async () => {
+      try {
+        const data = await getIngredients();
+        setIngredientsList(data);
+        if (data.length > 0) {
+          setSelectedIngredient(data[0].id);
+        }
+      } catch (err) {
+        console.error("Failed to fetch ingredients", err);
+      } finally {
+        setIsLoadingIngs(false);
+      }
+    };
+    fetchIngs();
+
     const draft = localStorage.getItem('stock-in-draft');
     if (draft) {
       try {
@@ -113,7 +122,7 @@ export default function StockInPage() {
     const ppu = parseFloat(ingPricePerUnit);
     if (!qty || !ppu || qty <= 0 || ppu <= 0) return;
 
-    const ing = INGREDIENTS.find(i => i.id === selectedIngredient)!;
+    const ing = ingredientsList.find(i => i.id === selectedIngredient)!;
     
     setItems(prev => [...prev, {
       id: uuidv4(),
@@ -224,15 +233,19 @@ export default function StockInPage() {
               <div className="space-y-5 flex-1">
                 <div>
                   <label className="block text-sm font-bold text-stone-700 mb-2">ინგრედიენტი</label>
-                  <select
-                    value={selectedIngredient}
-                    onChange={e => setSelectedIngredient(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-stone-800 font-medium"
-                  >
-                    {INGREDIENTS.map(ing => (
-                      <option key={ing.id} value={ing.id}>{ing.name} ({ing.unit})</option>
-                    ))}
-                  </select>
+                  {isLoadingIngs ? (
+                    <div className="w-full px-4 py-3 rounded-xl border border-stone-200 text-stone-500 font-medium">იტვირთება...</div>
+                  ) : (
+                    <select
+                      value={selectedIngredient}
+                      onChange={e => setSelectedIngredient(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-stone-800 font-medium bg-white"
+                    >
+                      {ingredientsList.map(ing => (
+                        <option key={ing.id} value={ing.id}>{ing.name} ({ing.unit})</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-stone-700 mb-2">რაოდენობა</label>

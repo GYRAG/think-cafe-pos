@@ -12,6 +12,7 @@ export default function AdminLayout() {
     { path: '/admin/products', icon: Package, label: 'პროდუქტები' },
     { path: '/admin/expenses', icon: Receipt, label: 'ხარჯები' },
     { path: '/admin/reports', icon: BarChart3, label: 'რეპორტები' },
+    { path: '/admin/ingredients', icon: Package, label: 'ინგრედიენტები' },
     { path: '/admin/users', icon: Users, label: 'მომხმარებლები' },
   ];
 

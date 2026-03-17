@@ -57,6 +57,13 @@ export interface Purchase {
   created_at: string;
 }
 
+export interface Ingredient {
+  id: string;
+  name: string;
+  unit: string;
+  created_at?: string;
+}
+
 export interface OrderItem {
   product: Product;
   quantity: number;
