@@ -38,7 +38,7 @@ export default function POSPage() {
   }
 
   const categories = useMemo(() => Array.from(new Set(products.map(p => p.category))), [products]);
-  
+
   const filteredProducts = useMemo(() => {
     if (!selectedCategory) return products;
     return products.filter(p => p.category === selectedCategory);
@@ -48,7 +48,7 @@ export default function POSPage() {
 
   const handleCheckoutClick = useCallback(async () => {
     if (cart.length === 0 || checkingOut) return;
-    
+
     if (!confirming) {
       setConfirming(true);
     } else {
@@ -94,149 +94,149 @@ export default function POSPage() {
 
   return (
     <>
-    <div className="flex h-full font-sans">
-      {/* Left Side: Product Grid (70%) */}
-      <div className="w-[70%] flex flex-col h-full border-r border-stone-200 bg-stone-50">
-        {/* Categories */}
-        <div className="p-4 border-b border-stone-200 bg-white overflow-x-auto whitespace-nowrap hide-scrollbar shrink-0">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setSelectedCategory(null)}
-              className={clsx(
-                "px-5 py-2.5 rounded-xl font-bold text-sm",
-                selectedCategory === null
-                  ? "bg-stone-800 text-white"
-                  : "bg-stone-100 text-stone-600"
-              )}
-            >
-              ყველა
-            </button>
-            {categories.map(cat => (
+      <div className="flex h-full font-sans">
+        {/* Left Side: Product Grid (70%) */}
+        <div className="w-[70%] flex flex-col h-full border-r border-stone-200 bg-stone-50">
+          {/* Categories */}
+          <div className="p-4 border-b border-stone-200 bg-white overflow-x-auto whitespace-nowrap hide-scrollbar shrink-0">
+            <div className="flex gap-2">
               <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
+                onClick={() => setSelectedCategory(null)}
                 className={clsx(
                   "px-5 py-2.5 rounded-xl font-bold text-sm",
-                  selectedCategory === cat
+                  selectedCategory === null
                     ? "bg-stone-800 text-white"
                     : "bg-stone-100 text-stone-600"
                 )}
               >
-                {cat}
+                ყველა
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Products */}
-        <div className="flex-1 overflow-y-auto p-6 pos-scroll">
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredProducts.map(product => (
-              <button
-                key={product.id}
-                onClick={() => handleAddToCart(product)}
-                className="pos-card bg-white rounded-2xl overflow-hidden border border-stone-100 flex flex-col text-left active:opacity-70"
-              >
-                <div className="h-36 w-full bg-stone-100 relative overflow-hidden">
-                  {product.image_url ? (
-                    <img 
-                      src={product.image_url} 
-                      alt={product.name} 
-                      loading="lazy"
-                      decoding="async"
-                      width="200"
-                      height="144"
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-stone-300">
-                      <ShoppingBag className="w-12 h-12" />
-                    </div>
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={clsx(
+                    "px-5 py-2.5 rounded-xl font-bold text-sm",
+                    selectedCategory === cat
+                      ? "bg-stone-800 text-white"
+                      : "bg-stone-100 text-stone-600"
                   )}
-                  <div className="absolute top-2 right-2 bg-white px-2 py-0.5 rounded-full font-bold text-stone-900 text-sm shadow-sm">
-                    {product.price}₾
-                  </div>
-                </div>
-                <div className="p-3">
-                  <h3 className="font-bold text-stone-800 text-base leading-tight line-clamp-2">{product.name}</h3>
-                  <p className="text-stone-500 text-xs mt-0.5">{product.category}</p>
-                </div>
-              </button>
-            ))}
-            {filteredProducts.length === 0 && (
-              <div className="col-span-full py-12 text-center text-stone-400">
-                პროდუქტები არ მოიძებნა
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Right Side: Current Order (30%) */}
-      <div className="w-[30%] flex flex-col h-full bg-white">
-        <div className="p-6 border-b border-stone-200 shrink-0 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-stone-800">მიმდინარე შეკვეთა</h2>
-          {cart.length > 0 && (
-            <button onClick={handleClearCart} className="text-stone-400" title="გასუფთავება">
-              <Trash2 className="w-5 h-5" />
-            </button>
-          )}
-        </div>
-
-        {/* Order Items */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {cart.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-stone-400 space-y-4">
-              <ShoppingBag className="w-16 h-16 opacity-20" />
-              <p className="text-lg font-medium">შეკვეთა ცარიელია</p>
+                >
+                  {cat}
+                </button>
+              ))}
             </div>
-          ) : (
-            cart.map(item => (
-              <CartItem key={item.product.id} item={item} onUpdate={handleUpdateQty} />
-            ))
-          )}
+          </div>
+
+          {/* Products */}
+          <div className="flex-1 overflow-y-auto p-6 pos-scroll">
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredProducts.map(product => (
+                <button
+                  key={product.id}
+                  onClick={() => handleAddToCart(product)}
+                  className="pos-card bg-white rounded-2xl overflow-hidden border border-stone-100 flex flex-col text-left active:opacity-70"
+                >
+                  <div className="h-36 w-full bg-stone-100 relative overflow-hidden">
+                    {product.image_url ? (
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        loading="lazy"
+                        decoding="async"
+                        width="200"
+                        height="144"
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-stone-300">
+                        <ShoppingBag className="w-12 h-12" />
+                      </div>
+                    )}
+                    <div className="absolute top-2 right-2 bg-white px-2 py-0.5 rounded-full font-bold text-stone-900 text-sm shadow-sm">
+                      {product.price}₾
+                    </div>
+                  </div>
+                  <div className="p-3">
+                    <h3 className="font-bold text-stone-800 text-base leading-tight line-clamp-2">{product.name}</h3>
+                    <p className="text-stone-500 text-xs mt-0.5">{product.category}</p>
+                  </div>
+                </button>
+              ))}
+              {filteredProducts.length === 0 && (
+                <div className="col-span-full py-12 text-center text-stone-400">
+                  პროდუქტები არ მოიძებნა
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Checkout Section */}
-        <div className="p-6 border-t border-stone-200 bg-stone-50 shrink-0">
-          <div className="flex justify-between items-end mb-6">
-            <span className="text-stone-500 font-medium text-lg">სულ გადასახდელი:</span>
-            <span className="text-4xl font-black text-stone-900">{totalAmount}₾</span>
-          </div>
-          
-          <button
-            onClick={handleCheckoutClick}
-            disabled={cart.length === 0 || checkingOut}
-            className={clsx(
-              "w-full py-5 rounded-2xl font-bold text-xl flex items-center justify-center gap-2",
-              confirming
-                ? "bg-green-700 text-white"
-                : "bg-green-600 disabled:bg-stone-300 disabled:cursor-not-allowed text-white"
+        {/* Right Side: Current Order (30%) */}
+        <div className="w-[30%] flex flex-col h-full bg-white">
+          <div className="p-6 border-b border-stone-200 shrink-0 flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-stone-800">მიმდინარე შეკვეთა</h2>
+            {cart.length > 0 && (
+              <button onClick={handleClearCart} className="text-stone-400" title="გასუფთავება">
+                <Trash2 className="w-5 h-5" />
+              </button>
             )}
-          >
-            {checkingOut ? (
-              <><Loader2 className="w-6 h-6 animate-spin" /> სრულდება...</>
-            ) : confirming ? (
-              <><CheckCircle2 className="w-6 h-6" /> დაადასტურეთ შეკვეთა</>
-            ) : 'შეკვეთის დასრულება'}
-          </button>
-          {confirming && !checkingOut && (
+          </div>
+
+          {/* Order Items */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {cart.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-stone-400 space-y-4">
+                <ShoppingBag className="w-16 h-16 opacity-20" />
+                <p className="text-lg font-medium">შეკვეთა ცარიელია</p>
+              </div>
+            ) : (
+              cart.map(item => (
+                <CartItem key={item.product.id} item={item} onUpdate={handleUpdateQty} />
+              ))
+            )}
+          </div>
+
+          {/* Checkout Section */}
+          <div className="p-6 border-t border-stone-200 bg-stone-50 shrink-0">
+            <div className="flex justify-between items-end mb-6">
+              <span className="text-stone-500 font-medium text-lg">სულ გადასახდელი:</span>
+              <span className="text-4xl font-black text-stone-900">{totalAmount}₾</span>
+            </div>
+
             <button
-              onClick={() => setConfirming(false)}
-              className="w-full mt-2 py-2 text-stone-500 text-sm font-medium"
+              onClick={handleCheckoutClick}
+              disabled={cart.length === 0 || checkingOut}
+              className={clsx(
+                "w-full py-5 rounded-2xl font-bold text-xl flex items-center justify-center gap-2",
+                confirming
+                  ? "bg-green-700 text-white"
+                  : "bg-green-600 disabled:bg-stone-300 disabled:cursor-not-allowed text-white"
+              )}
             >
-              გაუქმება
+              {checkingOut ? (
+                <><Loader2 className="w-6 h-6 animate-spin" /> სრულდება...</>
+              ) : confirming ? (
+                <><CheckCircle2 className="w-6 h-6" /> დაადასტურეთ შეკვეთა</>
+              ) : 'შეკვეთის დასრულება'}
             </button>
-          )}
+            {confirming && !checkingOut && (
+              <button
+                onClick={() => setConfirming(false)}
+                className="w-full mt-2 py-2 text-stone-500 text-sm font-medium"
+              >
+                გაუქმება
+              </button>
+            )}
+          </div>
         </div>
       </div>
-    </div>
       {showReceiptReminder && (
         <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-          <div className="bg-stone-900 text-white px-10 py-8 rounded-3xl shadow-2xl flex flex-col items-center gap-3">
-            <Receipt className="w-12 h-12 text-yellow-400" />
-            <p className="text-3xl font-black tracking-tight">ჩეკი არ დაგავიწყდეს!</p>
+          <div className="bg-stone-900 text-white px-20 py-16 rounded-3xl shadow-2xl flex flex-col items-center gap-6">
+            <Receipt className="w-24 h-24 text-yellow-400" />
+            <p className="text-6xl font-black tracking-tight">ჩეკი არ დაგავიწყდეს!</p>
           </div>
         </div>
       )}
