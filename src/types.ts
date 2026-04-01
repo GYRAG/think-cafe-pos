@@ -47,7 +47,7 @@ export interface Expense {
 
 export interface Purchase {
   id: string;
-  type: 'ingredient' | 'manual';
+  type: 'ingredient' | 'manual' | 'quick';
   ingredient_id?: string;
   name: string;
   quantity: number;

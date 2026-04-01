@@ -77,9 +77,13 @@ export default function ReportsPage() {
       .filter(p => p.type === 'manual')
       .reduce((sum, p) => sum + p.total, 0);
 
+    const quickCost = filteredPurchases
+      .filter(p => p.type === 'quick')
+      .reduce((sum, p) => sum + p.total, 0);
+
     const directExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
 
-    const otherCost = manualCost + directExpenses;
+    const otherCost = manualCost + quickCost + directExpenses;
     const totalPurchasesAndExpenses = ingredientsCost + otherCost;
 
     const profit = salesTotal - totalPurchasesAndExpenses;
@@ -169,7 +173,7 @@ export default function ReportsPage() {
 
     filteredPurchases.forEach(p => {
       const existing = ingMap.get(p.ingredient_id || p.name) || { name: p.name, quantity: 0, unit: p.unit || 'ცალი', total: 0, avg_price: 0 };
-      existing.quantity += p.quantity;
+      existing.quantity += p.type === 'quick' ? 0 : p.quantity;
       existing.total += p.total;
       ingMap.set(p.ingredient_id || p.name, existing);
     });

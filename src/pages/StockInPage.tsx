@@ -7,7 +7,7 @@ import { Purchase, Ingredient } from '../types';
 
 export default function StockInPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<'ingredient' | 'manual'>('ingredient');
+  const [mode, setMode] = useState<'quick' | 'ingredient' | 'manual'>('quick');
   const [items, setItems] = useState<Partial<Purchase>[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -30,13 +30,22 @@ export default function StockInPage() {
   const [ingQuantity, setIngQuantity] = useState('');
   const [ingPricePerUnit, setIngPricePerUnit] = useState('');
 
+  // Form State - Quick
+  const [quickName, setQuickName] = useState('');
+  const [quickTotal, setQuickTotal] = useState('');
+
   // Form State - Manual
   const [manName, setManName] = useState('');
   const [manQuantity, setManQuantity] = useState('');
   const [manTotal, setManTotal] = useState('');
 
+  // Recent Quick Names
+  const [recentQuickNames, setRecentQuickNames] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('quick-recent-names') || '[]'); } catch { return []; }
+  });
+
   // Numpad State
-  const [numpadTarget, setNumpadTarget] = useState<'ingPrice' | 'manQuantity' | 'manTotal' | null>(null);
+  const [numpadTarget, setNumpadTarget] = useState<'ingPrice' | 'manQuantity' | 'manTotal' | 'quickTotal' | null>(null);
   const [numpadValue, setNumpadValue] = useState('');
 
   const handleNumpadInput = (val: string) => {
@@ -61,12 +70,14 @@ export default function StockInPage() {
       setManQuantity(numpadValue);
     } else if (numpadTarget === 'manTotal') {
       setManTotal(numpadValue);
+    } else if (numpadTarget === 'quickTotal') {
+      setQuickTotal(numpadValue);
     }
     setNumpadTarget(null);
   };
 
   // Keyboard State
-  const [keyboardTarget, setKeyboardTarget] = useState<'manName' | null>(null);
+  const [keyboardTarget, setKeyboardTarget] = useState<'manName' | 'quickName' | null>(null);
   const [keyboardValue, setKeyboardValue] = useState('');
 
   const handleKeyboardInput = (val: string) => {
@@ -82,6 +93,8 @@ export default function StockInPage() {
   const handleKeyboardConfirm = () => {
     if (keyboardTarget === 'manName') {
       setManName(keyboardValue);
+    } else if (keyboardTarget === 'quickName') {
+      setQuickName(keyboardValue);
     }
     setKeyboardTarget(null);
   };
@@ -210,6 +223,30 @@ export default function StockInPage() {
     setIngPricePerUnit('');
   };
 
+  const handleAddQuick = () => {
+    const total = parseFloat(quickTotal);
+    const name = quickName.trim();
+    if (!name || !total || total <= 0) return;
+
+    setItems(prev => [...prev, {
+      id: uuidv4(),
+      type: 'quick',
+      name,
+      quantity: 0,
+      total
+    }]);
+
+    // Update recent names (keep last 5 unique)
+    setRecentQuickNames(prev => {
+      const updated = [name, ...prev.filter(n => n !== name)].slice(0, 5);
+      localStorage.setItem('quick-recent-names', JSON.stringify(updated));
+      return updated;
+    });
+
+    setQuickName('');
+    setQuickTotal('');
+  };
+
   const handleAddManual = () => {
     const qty = parseFloat(manQuantity);
     const total = parseFloat(manTotal);
@@ -297,7 +334,13 @@ export default function StockInPage() {
         <div className="w-full md:w-[400px] flex flex-col gap-4">
           
           {/* Mode Toggle */}
-          <div className="bg-white p-2 rounded-2xl shadow-sm border border-stone-200 flex p-1">
+          <div className="bg-white rounded-2xl shadow-sm border border-stone-200 flex p-1">
+            <button
+              onClick={() => setMode('quick')}
+              className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${mode === 'quick' ? 'bg-green-600 text-white shadow-md' : 'text-stone-600 hover:bg-stone-50'}`}
+            >
+              სწრაფი შეძენა
+            </button>
             <button
               onClick={() => setMode('ingredient')}
               className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${mode === 'ingredient' ? 'bg-green-600 text-white shadow-md' : 'text-stone-600 hover:bg-stone-50'}`}
@@ -308,13 +351,67 @@ export default function StockInPage() {
               onClick={() => setMode('manual')}
               className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${mode === 'manual' ? 'bg-green-600 text-white shadow-md' : 'text-stone-600 hover:bg-stone-50'}`}
             >
-              სხვა პროდუქტი
+              სხვა
             </button>
           </div>
 
           {/* Form container */}
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-stone-200 flex-1 flex flex-col">
-            {mode === 'ingredient' ? (
+            {mode === 'quick' ? (
+              <div className="space-y-5 flex-1">
+                {/* Recent names chips */}
+                {recentQuickNames.length > 0 && (
+                  <div>
+                    <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">ბოლოს გამოყენებული</label>
+                    <div className="flex flex-wrap gap-2">
+                      {recentQuickNames.map(name => (
+                        <button
+                          key={name}
+                          onClick={() => setQuickName(name)}
+                          className="px-3 py-1.5 bg-stone-100 hover:bg-green-50 hover:text-green-700 text-stone-700 rounded-lg text-sm font-medium border border-stone-200 hover:border-green-200 transition-colors"
+                        >
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-bold text-stone-700 mb-2">პროდუქტის სახელი</label>
+                  <div
+                    onClick={() => { setKeyboardValue(quickName); setKeyboardTarget('quickName'); }}
+                    className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 cursor-pointer font-medium flex items-center transition-colors min-h-[50px]"
+                  >
+                    <span className={quickName ? 'text-stone-900' : 'text-stone-400'}>
+                      {quickName || 'მაგ. ფქვილი'}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-stone-700 mb-2">მთლიანი ფასი (₾)</label>
+                  <div
+                    onClick={() => { setNumpadValue(quickTotal); setNumpadTarget('quickTotal'); }}
+                    className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 cursor-pointer font-medium flex items-center transition-colors"
+                  >
+                    <span className={quickTotal ? 'text-stone-900' : 'text-stone-400'}>
+                      {quickTotal || '0.00'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-stone-100 mt-auto">
+                  <button
+                    onClick={handleAddQuick}
+                    disabled={!quickName.trim() || !quickTotal || parseFloat(quickTotal) <= 0}
+                    className="w-full py-4 bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-bold flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Plus className="w-5 h-5" /> დამატება
+                  </button>
+                </div>
+              </div>
+            ) : mode === 'ingredient' ? (
               <div className="space-y-5 flex-1">
                 <div>
                   <label className="block text-sm font-bold text-stone-700 mb-2">ინგრედიენტი</label>
@@ -473,18 +570,24 @@ export default function StockInPage() {
                     <td className="p-4">
                       <div className="font-bold text-stone-800">{item.name}</div>
                       <div className="text-xs text-stone-500 font-medium">
-                        {item.type === 'ingredient' ? 'ინგრედიენტი' : 'სხვა'}
+                        {item.type === 'ingredient' ? 'ინგრედიენტი' : item.type === 'quick' ? 'სწრაფი' : 'სხვა'}
                       </div>
                     </td>
                     <td className="p-4 text-right font-medium text-stone-700">
-                      {item.quantity} {item.unit || 'ცალი'}
+                      {item.type === 'quick' ? <span className="text-stone-400">—</span> : `${item.quantity} ${item.unit || 'ცალი'}`}
                     </td>
                     <td className="p-4 text-right font-black text-stone-800">
-                      {item.total?.toFixed(2)}₾
-                      {item.type === 'ingredient' && (
-                        <div className="text-xs text-stone-400 font-medium mt-0.5">
-                          ({item.price_per_unit?.toFixed(2)}₾ / {item.unit})
-                        </div>
+                      {item.type === 'quick' ? (
+                        <span className="font-black text-stone-800">{item.total?.toFixed(2)}₾</span>
+                      ) : (
+                        <>
+                          {item.total?.toFixed(2)}₾
+                          {item.type === 'ingredient' && (
+                            <div className="text-xs text-stone-400 font-medium mt-0.5">
+                              ({item.price_per_unit?.toFixed(2)}₾ / {item.unit})
+                            </div>
+                          )}
+                        </>
                       )}
                     </td>
                     <td className="p-4 text-right">

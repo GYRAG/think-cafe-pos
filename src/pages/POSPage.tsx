@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback, memo } from 'react';
 import { Product } from '../types';
 import { getProducts, completeOrder } from '../lib/db';
 import { useStore } from '../store';
-import { Plus, Minus, Trash2, ShoppingBag, CheckCircle2, Loader2, RotateCcw } from 'lucide-react';
+import { Plus, Minus, Trash2, ShoppingBag, CheckCircle2, Loader2, RotateCcw, Receipt } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export default function POSPage() {
@@ -18,6 +18,7 @@ export default function POSPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
+  const [showReceiptReminder, setShowReceiptReminder] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -56,6 +57,8 @@ export default function POSPage() {
         await completeOrder(cart);
         clearCart();
         setConfirming(false);
+        setShowReceiptReminder(true);
+        setTimeout(() => setShowReceiptReminder(false), 3000);
       } catch (err: any) {
         const msg = err?.message ?? JSON.stringify(err);
         console.error('[completeOrder] Failed:', err);
@@ -90,6 +93,7 @@ export default function POSPage() {
   }
 
   return (
+    <>
     <div className="flex h-full font-sans">
       {/* Left Side: Product Grid (70%) */}
       <div className="w-[70%] flex flex-col h-full border-r border-stone-200 bg-stone-50">
@@ -228,6 +232,15 @@ export default function POSPage() {
         </div>
       </div>
     </div>
+      {showReceiptReminder && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+          <div className="bg-stone-900 text-white px-10 py-8 rounded-3xl shadow-2xl flex flex-col items-center gap-3">
+            <Receipt className="w-12 h-12 text-yellow-400" />
+            <p className="text-3xl font-black tracking-tight">ჩეკი არ დაგავიწყდეს!</p>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
