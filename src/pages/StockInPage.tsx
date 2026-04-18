@@ -416,26 +416,52 @@ export default function StockInPage() {
                 <div>
                   <label className="block text-sm font-bold text-stone-700 mb-2">ინგრედიენტი</label>
                   {isLoadingIngs ? (
-                    <div className="w-full px-4 py-3 rounded-xl border border-stone-200 text-stone-500 font-medium">იტვირთება...</div>
+                    <div className="w-full px-4 py-3 rounded-xl border border-stone-200 text-stone-500 font-medium flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" /> იტვირთება...
+                    </div>
                   ) : (
-                    <select
-                      value={selectedIngredient}
-                      onChange={e => setSelectedIngredient(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-stone-800 font-medium bg-white"
-                    >
+                    <div className="max-h-[300px] overflow-y-auto pr-2 space-y-6 custom-scrollbar">
                       {categoryGroups.map(group => (
-                        <optgroup key={group.category} label={group.category} className="font-bold text-stone-900 bg-stone-50">
-                          {group.ingredients.map(ing => (
-                            <option key={`${group.category}-${ing.id}`} value={ing.id} className="font-medium text-stone-700 bg-white">
-                              {ing.name} ({ing.unit})
-                            </option>
+                        <div key={group.category}>
+                          <h4 className="text-xs font-bold text-stone-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                            {group.category}
+                            <div className="h-px bg-stone-100 flex-1"></div>
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {group.ingredients.map(ing => (
+                              <button
+                                key={`${group.category}-${ing.id}`}
+                                onClick={() => setSelectedIngredient(ing.id)}
+                                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                                  selectedIngredient === ing.id
+                                    ? 'bg-green-600 text-white shadow-md border border-green-600'
+                                    : 'bg-white text-stone-600 border border-stone-200 hover:border-green-300 hover:bg-green-50/50 hover:text-green-700 shadow-sm'
+                                }`}
+                              >
+                                {ing.name} <span className={selectedIngredient === ing.id ? 'text-green-100' : 'text-stone-400'}>({ing.unit})</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      {categoryGroups.length === 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {ingredientsList.map(ing => (
+                            <button
+                              key={ing.id}
+                              onClick={() => setSelectedIngredient(ing.id)}
+                              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                                selectedIngredient === ing.id
+                                  ? 'bg-green-600 text-white shadow-md border border-green-600'
+                                  : 'bg-white text-stone-600 border border-stone-200 hover:border-green-300 hover:bg-green-50/50 hover:text-green-700 shadow-sm'
+                              }`}
+                            >
+                              {ing.name} <span className={selectedIngredient === ing.id ? 'text-green-100' : 'text-stone-400'}>({ing.unit})</span>
+                            </button>
                           ))}
-                        </optgroup>
-                      ))}
-                      {categoryGroups.length === 0 && ingredientsList.map(ing => (
-                        <option key={ing.id} value={ing.id}>{ing.name} ({ing.unit})</option>
-                      ))}
-                    </select>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
                 <div>
