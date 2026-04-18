@@ -222,24 +222,20 @@ export default function StockInPage() {
       const total = parseFloat(ingTotalPrice);
       if (!total || total <= 0) return;
 
-      const itemsToAdd = selectedIngredients.map(ingId => {
-        const ing = ingredientsList.find(i => i.id === ingId)!;
-        const qty = parseFloat(ingQuantity) || 1;
-        const share = total / selectedIngredients.length;
-        
-        return {
-          id: uuidv4(),
-          type: 'ingredient' as const,
-          ingredient_id: ing.id,
-          name: ing.name,
-          quantity: qty,
-          unit: ing.unit,
-          price_per_unit: share / qty,
-          total: share
-        };
-      });
+      const selectedIngs = selectedIngredients.map(id => ingredientsList.find(i => i.id === id)!);
+      const names = selectedIngs.map(i => i.name).join(', ');
+      
+      setItems(prev => [...prev, {
+        id: uuidv4(),
+        type: 'ingredient' as const,
+        ingredient_id: null, // Combined entry doesn't link to a single ID
+        name: `ჯგუფი: ${names}`,
+        quantity: 1,
+        unit: 'ჯგუფი',
+        price_per_unit: total,
+        total: total
+      }]);
 
-      setItems(prev => [...prev, ...itemsToAdd]);
       setSelectedIngredients([]);
       setIngQuantity('');
       setIngPricePerUnit('');
@@ -510,6 +506,14 @@ export default function StockInPage() {
                     </div>
                     
                     <div className="pt-4 border-t border-stone-100 mt-auto">
+                      <div className="bg-amber-50 border border-amber-100 p-3 rounded-xl mb-4">
+                        <p className="text-[10px] leading-relaxed text-amber-800 font-medium">
+                        ჯგუფური შენახვისას მთლიანი ღირებულება იწერება ერთიანად. ცალკეული ინგრედიენტების ფასები არ დაფიქსირდება ცალ-ცალკე.
+                        </p>
+                        <p className="text-[9px] mt-1 text-amber-600/70 italic">
+                          Saving as a group records total cost under a combined entry. Individual ingredient costs won't be tracked separately.
+                        </p>
+                      </div>
                       <button
                         onClick={handleAddIngredient}
                         disabled={!ingTotalPrice || selectedIngredients.length === 0}
