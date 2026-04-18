@@ -61,6 +61,17 @@ export default function ReportsPage() {
     return false;
   };
 
+  const translateCategory = (cat: string) => {
+    const map: Record<string, string> = {
+      'Utilities': 'კომუნალურები',
+      'Ingredients': 'ინგრედიენტები',
+      'Maintenance': 'მომსახურება',
+      'Supplies': 'მასალები',
+      'Other': 'სხვა'
+    };
+    return map[cat] || cat;
+  };
+
   // --- Summary Cards Data (New Requirement) ---
   const summaryData = useMemo(() => {
     const filteredOrders = orders.filter(o => isDateInRange(o.timestamp));
@@ -185,6 +196,13 @@ export default function ReportsPage() {
       }))
       .sort((a, b) => b.total - a.total); // sort by total money spent
   }, [purchases, period, startDate, endDate]);
+  
+  // --- Individual Expenses List ---
+  const filteredExpensesList = useMemo(() => {
+    return expenses
+      .filter(e => isDateInRange(e.timestamp))
+      .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  }, [expenses, period, startDate, endDate]);
 
   const handleExportCSV = () => {
     const BOM = '\uFEFF';
@@ -235,6 +253,19 @@ export default function ReportsPage() {
     const wsIng = XLSX.utils.json_to_sheet(ingData);
     wsIng['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 20 }];
     XLSX.utils.book_append_sheet(workbook, wsIng, 'შეძენილი ინგრედიენტები');
+
+    const expData = expenses
+      .filter(e => isDateInRange(e.timestamp))
+      .map(e => ({
+        'თარიღი': format(parseISO(e.timestamp), 'yyyy-MM-dd HH:mm'),
+        'კატეგორია': e.category,
+        'დასახელება': e.title,
+        'თანხა (₾)': Number(e.amount.toFixed(2)),
+        'კომენტარი': e.notes || ''
+      }));
+    const wsExp = XLSX.utils.json_to_sheet(expData);
+    wsExp['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 40 }];
+    XLSX.utils.book_append_sheet(workbook, wsExp, 'ხარჯები');
 
     XLSX.writeFile(workbook, `full_report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
@@ -480,6 +511,51 @@ export default function ReportsPage() {
                 {ingredientsBoughtData.length === 0 && (
                   <tr>
                     <td colSpan={5} className="p-8 text-center text-stone-500">ინგრედიენტები არ მოიძებნა</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Individual Expenses Table */}
+        <div className="bg-white rounded-3xl shadow-sm border border-stone-100 overflow-hidden flex flex-col h-[500px]">
+          <div className="p-6 border-b border-stone-100 shrink-0">
+            <h2 className="text-xl font-bold text-stone-800">ზოგადი ხარჯები</h2>
+          </div>
+          <div className="overflow-auto flex-1 p-0">
+            <table className="w-full text-left border-collapse">
+              <thead className="sticky top-0 bg-stone-50 shadow-sm z-10">
+                <tr className="border-b border-stone-100 text-stone-500 text-sm uppercase tracking-wider">
+                  <th className="p-4 font-medium whitespace-nowrap">თარიღი</th>
+                  <th className="p-4 font-medium whitespace-nowrap">დასახელება</th>
+                  <th className="p-4 font-medium whitespace-nowrap">კატეგორია</th>
+                  <th className="p-4 font-medium whitespace-nowrap text-right">თანხა</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {filteredExpensesList.map((exp, i) => (
+                  <tr key={exp.id} className="hover:bg-stone-50/50 transition-colors">
+                    <td className="p-4 text-stone-500 text-sm whitespace-nowrap">
+                      {format(parseISO(exp.timestamp), 'dd/MM/yy HH:mm')}
+                    </td>
+                    <td className="p-4">
+                      <div className="font-bold text-stone-800">{exp.title}</div>
+                      {exp.notes && <div className="text-xs text-stone-400 truncate max-w-[200px]">{exp.notes}</div>}
+                    </td>
+                    <td className="p-4">
+                      <span className="px-2 py-0.5 bg-stone-100 text-stone-600 rounded-md text-[10px] font-bold uppercase tracking-tight">
+                        {translateCategory(exp.category)}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right font-black text-red-600 whitespace-nowrap">
+                      {exp.amount.toFixed(2)}₾
+                    </td>
+                  </tr>
+                ))}
+                {filteredExpensesList.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-8 text-center text-stone-500">ხარჯები არ მოიძებნა</td>
                   </tr>
                 )}
               </tbody>

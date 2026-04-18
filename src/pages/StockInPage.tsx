@@ -650,7 +650,14 @@ export default function StockInPage() {
                     </td>
                     <td className="p-4 text-right">
                       <button
-                        onClick={() => handleRemoveItem(item.id!)}
+                        onClick={() => {
+                          showNotification(
+                            `ნამდვილად გსურთ "${item.name}"-ის წაშლა?`,
+                            'error',
+                            true,
+                            () => handleRemoveItem(item.id!)
+                          );
+                        }}
                         className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-flex"
                       >
                         <Trash2 className="w-5 h-5" />

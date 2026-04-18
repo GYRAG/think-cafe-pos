@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Expense } from '../../types';
 import { getExpenses, addExpense, updateExpense, deleteExpense } from '../../lib/db';
-import { Plus, Edit2, Trash2, X, Loader2, RotateCcw } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isWithinInterval, startOfDay, endOfDay, isToday, isThisWeek, isThisMonth, subDays } from 'date-fns';
+import { Plus, Edit2, Trash2, X, Loader2, RotateCcw, Calendar as CalendarIcon, TrendingDown } from 'lucide-react';
 import { useStore } from '../../store';
+
+type Period = 'today' | 'this_week' | 'this_month' | 'all_time' | 'custom';
 
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [period, setPeriod] = useState<Period>('this_month');
+  const [startDate, setStartDate] = useState(format(subDays(new Date(), 7), 'yyyy-MM-dd'));
+  const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -17,13 +23,24 @@ export default function ExpensesPage() {
 
   const [formData, setFormData] = useState({
     title: '',
-    category: 'Utilities',
+    category: 'კომუნალურები',
     amount: '',
     notes: '',
     timestamp: format(new Date(), "yyyy-MM-dd'T'HH:mm")
   });
 
-  const categories = ['Utilities', 'Ingredients', 'Maintenance', 'Supplies', 'Other'];
+  const categories = ['კომუნალურები', 'ინგრედიენტები', 'მომსახურება', 'მასალები', 'სხვა'];
+
+  const translateCategory = (cat: string) => {
+    const map: Record<string, string> = {
+      'Utilities': 'კომუნალურები',
+      'Ingredients': 'ინგრედიენტები',
+      'Maintenance': 'მომსახურება',
+      'Supplies': 'მასალები',
+      'Other': 'სხვა'
+    };
+    return map[cat] || cat;
+  };
 
   useEffect(() => {
     fetchExpenses();
@@ -93,6 +110,27 @@ export default function ExpensesPage() {
     }
   };
 
+  const isDateInRange = (dateStr: string) => {
+    if (!dateStr) return false;
+    const d = parseISO(dateStr);
+
+    if (period === 'all_time') return true;
+    if (period === 'today') return isToday(d);
+    if (period === 'this_week') return isThisWeek(d, { weekStartsOn: 1 });
+    if (period === 'this_month') return isThisMonth(d);
+
+    if (period === 'custom') {
+      const start = startDate ? startOfDay(parseISO(startDate)) : new Date(0);
+      const end = endDate ? endOfDay(parseISO(endDate)) : new Date();
+      return isWithinInterval(d, { start, end });
+    }
+
+    return false;
+  };
+
+  const filteredExpenses = expenses.filter(e => isDateInRange(e.timestamp));
+  const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+
   const handleDelete = async (id: string) => {
     showNotification('ნამდვილად გსურთ წაშლა?', 'error', true, async () => {
       try {
@@ -127,7 +165,10 @@ export default function ExpensesPage() {
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-stone-800">ხარჯები</h1>
+        <div>
+          <h1 className="text-3xl font-bold text-stone-800">ხარჯები</h1>
+          <p className="text-stone-500 mt-1">მართეთ და გაფილტრეთ ბიზნესის ხარჯები</p>
+        </div>
         <button
           onClick={() => handleOpenModal()}
           className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold transition-colors shadow-lg shadow-red-600/20"
@@ -135,6 +176,38 @@ export default function ExpensesPage() {
           <Plus className="w-5 h-5" />
           ხარჯის დამატება
         </button>
+      </div>
+
+      {/* --- TIMEFRAME FILTERS --- */}
+      <div className="bg-white p-2 rounded-2xl shadow-sm border border-stone-100 flex flex-wrap items-center gap-2">
+        <button onClick={() => setPeriod('today')} className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${period === 'today' ? 'bg-red-600 text-white shadow-md shadow-red-600/20' : 'text-stone-600 hover:bg-stone-50'}`}>დღეს</button>
+        <button onClick={() => setPeriod('this_week')} className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${period === 'this_week' ? 'bg-red-600 text-white shadow-md shadow-red-600/20' : 'text-stone-600 hover:bg-stone-50'}`}>ეს კვირა</button>
+        <button onClick={() => setPeriod('this_month')} className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${period === 'this_month' ? 'bg-red-600 text-white shadow-md shadow-red-600/20' : 'text-stone-600 hover:bg-stone-50'}`}>ეს თვე</button>
+        <button onClick={() => setPeriod('all_time')} className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${period === 'all_time' ? 'bg-red-600 text-white shadow-md shadow-red-600/20' : 'text-stone-600 hover:bg-stone-50'}`}>სრული დრო</button>
+
+        <div className="w-px h-6 bg-stone-200 mx-2"></div>
+
+        <button onClick={() => setPeriod('custom')} className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl transition-all ${period === 'custom' ? 'bg-red-600 text-white shadow-md shadow-red-600/20' : 'text-stone-600 hover:bg-stone-50'}`}>
+          <CalendarIcon className="w-4 h-4" /> მორგებული
+        </button>
+
+        {period === 'custom' && (
+          <div className="flex items-center gap-2 ml-2">
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="px-3 py-1.5 text-sm rounded-lg border border-stone-200 focus:ring-2 focus:ring-red-500 outline-none" />
+            <span className="text-stone-400">-</span>
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="px-3 py-1.5 text-sm rounded-lg border border-stone-200 focus:ring-2 focus:ring-red-500 outline-none" />
+          </div>
+        )}
+      </div>
+
+      {/* --- SUMMARY CARD --- */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-100 max-w-sm">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-bold text-stone-500 uppercase tracking-wider text-xs">ჯამური ხარჯი</h3>
+          <div className="bg-red-50 p-2 rounded-xl text-red-600"><TrendingDown className="w-5 h-5" /></div>
+        </div>
+        <div className="text-4xl font-black text-red-600">{totalExpenses.toFixed(2)}₾</div>
+        <p className="text-stone-400 text-xs mt-2 font-medium">შერჩეული პერიოდის მიხედვით</p>
       </div>
 
       <div className="bg-white rounded-3xl shadow-sm border border-stone-100 overflow-hidden">
@@ -151,7 +224,7 @@ export default function ExpensesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {expenses.map(expense => (
+              {filteredExpenses.map(expense => (
                 <tr key={expense.id} className="hover:bg-stone-50/50 transition-colors">
                   <td className="p-4 text-stone-600">
                     {format(parseISO(expense.timestamp), 'dd/MM/yyyy HH:mm')}
@@ -159,7 +232,7 @@ export default function ExpensesPage() {
                   <td className="p-4 font-bold text-stone-800">{expense.title}</td>
                   <td className="p-4">
                     <span className="px-3 py-1 bg-stone-100 text-stone-600 rounded-full text-xs font-bold">
-                      {expense.category}
+                      {translateCategory(expense.category)}
                     </span>
                   </td>
                   <td className="p-4 font-black text-red-600">{expense.amount}₾</td>
@@ -186,7 +259,7 @@ export default function ExpensesPage() {
                   </td>
                 </tr>
               ))}
-              {expenses.length === 0 && (
+              {filteredExpenses.length === 0 && (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-stone-500">
                     ხარჯები არ მოიძებნა
