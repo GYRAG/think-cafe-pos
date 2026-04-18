@@ -26,16 +26,6 @@ export default function StockInPage() {
   const [ingTotalPrice, setIngTotalPrice] = useState('');
 
   const [allPastPurchases, setAllPastPurchases] = useState<Purchase[]>([]);
-  const [isDistributing, setIsDistributing] = useState(false);
-  const [distTotalValue, setDistTotalValue] = useState('');
-  const [distributionItems, setDistributionItems] = useState<{
-    id: string;
-    ingredient_id: string;
-    name: string;
-    unit: string;
-    quantity: string;
-    share: string;
-  }[]>([]);
 
   // Form State - Manual
   const [manName, setManName] = useState('');
@@ -232,22 +222,28 @@ export default function StockInPage() {
       const total = parseFloat(ingTotalPrice);
       if (!total || total <= 0) return;
 
-      setDistTotalValue(ingTotalPrice);
-      
-      const newDistItems = selectedIngredients.map(ingId => {
+      const itemsToAdd = selectedIngredients.map(ingId => {
         const ing = ingredientsList.find(i => i.id === ingId)!;
+        const qty = parseFloat(ingQuantity) || 1;
+        const share = total / selectedIngredients.length;
+        
         return {
           id: uuidv4(),
+          type: 'ingredient' as const,
           ingredient_id: ing.id,
           name: ing.name,
+          quantity: qty,
           unit: ing.unit,
-          quantity: ingQuantity || '1',
-          share: (total / selectedIngredients.length).toFixed(2)
+          price_per_unit: share / qty,
+          total: share
         };
       });
-      
-      setDistributionItems(newDistItems);
-      setIsDistributing(true);
+
+      setItems(prev => [...prev, ...itemsToAdd]);
+      setSelectedIngredients([]);
+      setIngQuantity('');
+      setIngPricePerUnit('');
+      setIngTotalPrice('');
     }
   };
 
@@ -276,54 +272,6 @@ export default function StockInPage() {
     setManName('');
     setManQuantity('');
     setManTotal('');
-  };
-
-  const updateDistItem = (id: string, updates: Partial<typeof distributionItems[0]>) => {
-    setDistributionItems(prev => prev.map(item => {
-      if (item.id !== id) return item;
-      const newValues = { ...item, ...updates };
-      // Ensure share is never negative
-      if (updates.share !== undefined) {
-        newValues.share = Math.max(0, parseFloat(updates.share) || 0).toString();
-      }
-      return newValues;
-    }));
-  };
-
-  const distAllocated = distributionItems.reduce((sum, item) => sum + (parseFloat(item.share) || 0), 0);
-  const distRemain = parseFloat(distTotalValue || '0') - distAllocated;
-
-  const handleDistributionComplete = () => {
-    const itemsToAdd = distributionItems.map(item => {
-      const qty = parseFloat(item.quantity) || 1;
-      const share = parseFloat(item.share) || 0;
-      return {
-        id: item.id,
-        type: 'ingredient' as const,
-        ingredient_id: item.ingredient_id,
-        name: item.name,
-        quantity: qty,
-        unit: item.unit,
-        price_per_unit: share / qty,
-        total: share
-      };
-    });
-
-    setItems(prev => [...prev, ...itemsToAdd]);
-    setIsDistributing(false);
-    setSelectedIngredients([]);
-    setIngQuantity('');
-    setIngPricePerUnit('');
-    setIngTotalPrice('');
-  };
-
-  const autoBalanceDist = () => {
-    if (distRemain === 0) return;
-    const balancePerItem = distRemain / distributionItems.length;
-    setDistributionItems(prev => prev.map(item => ({
-      ...item,
-      share: Math.max(0, parseFloat(item.share || '0') + balancePerItem).toFixed(2)
-    })));
   };
 
   const handleRemoveItem = (id: string) => {
@@ -843,114 +791,6 @@ export default function StockInPage() {
 
       {/* Notification Modal is now handled globally in App.tsx */}
 
-      {/* Distribution Modal */}
-      {isDistributing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-8 border-b border-stone-100 flex justify-between items-center bg-stone-50/50">
-              <div>
-                <h3 className="text-2xl font-black text-stone-800">💰 პრიზების განაწილება</h3>
-                <p className="text-stone-500 font-medium mt-1">მთლიანი ჩეკი: <span className="text-stone-900 font-bold">{distTotalValue}₾</span></p>
-              </div>
-              <button 
-                onClick={() => setIsDistributing(false)}
-                className="p-3 bg-white hover:bg-stone-100 text-stone-400 rounded-2xl transition-all border border-stone-200"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
-              {distributionItems.map((item) => (
-                <div key={item.id} className="p-6 bg-stone-50 rounded-3xl border border-stone-200 shadow-sm transition-all hover:shadow-md">
-                  <div className="flex justify-between items-start mb-6">
-                    <div>
-                      <h4 className="text-lg font-black text-stone-800">{item.name}</h4>
-                      <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">{item.unit}</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs font-bold text-stone-400 uppercase mb-1">რაოდენობა</div>
-                      <input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => updateDistItem(item.id, { quantity: e.target.value })}
-                        className="w-24 px-3 py-2 bg-white border border-stone-200 rounded-xl text-right font-black text-stone-800 focus:ring-2 focus:ring-green-500 outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-end gap-6">
-                      <div className="flex-1">
-                        <div className="flex justify-between mb-2">
-                          <label className="text-sm font-bold text-stone-600">წილი ჩეკში</label>
-                          <span className="text-sm font-black text-green-600">{item.share}₾</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0"
-                          max={Math.max(0, parseFloat(item.share) + distRemain)}
-                          step="0.01"
-                          value={item.share}
-                          onChange={(e) => updateDistItem(item.id, { share: e.target.value })}
-                          className="w-full accent-green-600 cursor-pointer h-2 bg-stone-200 rounded-lg appearance-none"
-                        />
-                      </div>
-                      <div className="w-32">
-                        <input
-                          type="number"
-                          value={item.share}
-                          onChange={(e) => updateDistItem(item.id, { share: e.target.value })}
-                          className="w-full px-4 py-3 bg-white border border-stone-200 rounded-xl font-black text-stone-800 text-center focus:ring-2 focus:ring-green-500 outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Price Memory in Modal */}
-                    <div className="flex flex-wrap gap-2 pt-2">
-                      <span className="text-[10px] font-black text-stone-400 uppercase tracking-tighter self-center mr-1">ბოლო:</span>
-                      {getPriceMemory(item.ingredient_id).map(price => (
-                        <button
-                          key={price}
-                          onClick={() => updateDistItem(item.id, { share: (parseFloat(item.quantity) * price).toFixed(2) })}
-                          className="px-2.5 py-1 bg-white hover:bg-green-50 text-[11px] font-bold text-stone-500 hover:text-green-700 rounded-lg border border-stone-200 hover:border-green-200 transition-all"
-                        >
-                          {price}₾
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="p-8 bg-stone-50 border-t border-stone-100">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <div className="text-xs font-bold text-stone-400 uppercase mb-1">
-                    {distRemain < -0.01 ? '❌ ზედმეტია განაწილებული' : 'დარჩენილია გასანაწილებელი'}
-                  </div>
-                  <div className={`text-2xl font-black ${distRemain < -0.01 ? 'text-red-600 animate-pulse' : distRemain > 0.01 ? 'text-blue-600' : 'text-green-600'}`}>
-                    {distRemain.toFixed(2)}₾
-                  </div>
-                </div>
-                <button
-                  onClick={autoBalanceDist}
-                  className="px-6 py-3 bg-stone-200 hover:bg-stone-300 text-stone-700 rounded-2xl font-bold transition-all flex items-center gap-2"
-                >
-                  გათანაბრება
-                </button>
-              </div>
-              <button
-                onClick={handleDistributionComplete}
-                className="w-full py-5 bg-green-600 hover:bg-green-700 text-white rounded-[2rem] font-black text-xl shadow-lg shadow-green-100 transition-all flex items-center justify-center gap-3"
-              >
-                <Plus className="w-8 h-8" /> სიაში დამატება
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
