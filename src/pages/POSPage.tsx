@@ -132,39 +132,53 @@ export default function POSPage() {
           {/* Products */}
           <div className="flex-1 overflow-y-auto p-6 pos-scroll">
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredProducts.map(product => (
-                <button
-                  key={product.id}
-                  onClick={() => handleAddToCart(product)}
-                  className="pos-card bg-white rounded-2xl overflow-hidden border border-stone-100 flex flex-col text-left active:opacity-70"
-                >
-                  <div className="h-36 w-full bg-stone-100 relative overflow-hidden">
-                    {product.image_url ? (
-                      <img
-                        src={product.image_url}
-                        alt={product.name}
-                        loading="lazy"
-                        decoding="async"
-                        width="200"
-                        height="144"
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-stone-300">
-                        <ShoppingBag className="w-12 h-12" />
+              {filteredProducts.map(product => {
+                const cartItem = cart.find(item => item.product.id === product.id);
+                const quantity = cartItem?.quantity || 0;
+                
+                return (
+                  <button
+                    key={product.id}
+                    onClick={() => handleAddToCart(product)}
+                    className="pos-card bg-white rounded-2xl overflow-hidden border border-stone-100 flex flex-col text-left active:opacity-70 relative"
+                  >
+                    <div className="h-36 w-full bg-stone-100 relative overflow-hidden">
+                      {product.image_url ? (
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
+                          loading="lazy"
+                          decoding="async"
+                          width="200"
+                          height="144"
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-stone-300">
+                          <ShoppingBag className="w-12 h-12" />
+                        </div>
+                      )}
+                      
+                      {/* Price Badge */}
+                      <div className="absolute top-2 right-2 bg-white/95 backdrop-blur-sm px-2 py-0.5 rounded-full font-bold text-stone-900 text-sm shadow-sm border border-stone-100">
+                        {product.price}₾
                       </div>
-                    )}
-                    <div className="absolute top-2 right-2 bg-white px-2 py-0.5 rounded-full font-bold text-stone-900 text-sm shadow-sm">
-                      {product.price}₾
+
+                      {/* Quantity Badge */}
+                      {quantity > 0 && (
+                        <div className="absolute top-2 left-2 bg-green-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-black text-sm shadow-lg border-2 border-white animate-in zoom-in duration-200">
+                          {quantity}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <div className="p-3">
-                    <h3 className="font-bold text-stone-800 text-base leading-tight line-clamp-2">{product.name}</h3>
-                    <p className="text-stone-500 text-xs mt-0.5">{product.category}</p>
-                  </div>
-                </button>
-              ))}
+                    <div className="p-3">
+                      <h3 className="font-bold text-stone-800 text-base leading-tight line-clamp-2">{product.name}</h3>
+                      <p className="text-stone-500 text-xs mt-0.5">{product.category}</p>
+                    </div>
+                  </button>
+                );
+              })}
               {filteredProducts.length === 0 && (
                 <div className="col-span-full py-12 text-center text-stone-400">
                   პროდუქტები არ მოიძებნა
@@ -225,7 +239,7 @@ export default function POSPage() {
             {confirming && !checkingOut && (
               <button
                 onClick={() => setConfirming(false)}
-                className="w-full mt-2 py-2 text-stone-500 text-sm font-medium"
+                className="w-full mt-3 py-4 rounded-xl border-2 border-stone-200 text-stone-600 hover:bg-stone-100 font-bold transition-all flex items-center justify-center gap-2"
               >
                 გაუქმება
               </button>

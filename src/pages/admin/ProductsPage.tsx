@@ -24,11 +24,15 @@ import { CSS } from '@dnd-kit/utilities';
 // --- Sortable Table Row Component ---
 function SortableTableRow({ 
   product, 
+  isSelected,
+  onToggleSelect,
   onEdit, 
   onDelete 
 }: { 
   key?: React.Key | null;
   product: Product; 
+  isSelected: boolean;
+  onToggleSelect: (id: string) => void;
   onEdit: (p?: Product) => void;
   onDelete: (id: string) => void | Promise<void>;
 }) {
@@ -48,7 +52,15 @@ function SortableTableRow({
   };
 
   return (
-    <tr ref={setNodeRef} style={style} className={`group transition-colors ${isDragging ? '' : 'hover:bg-stone-50/50'}`}>
+    <tr ref={setNodeRef} style={style} className={`group transition-colors ${isDragging ? '' : isSelected ? 'bg-orange-50/50' : 'hover:bg-stone-50/50'}`}>
+      <td className="p-4 w-12 text-center">
+        <input 
+          type="checkbox"
+          checked={isSelected}
+          onChange={() => onToggleSelect(product.id)}
+          className="w-5 h-5 text-green-600 rounded focus:ring-green-500 border-stone-300 cursor-pointer"
+        />
+      </td>
       <td className="p-4 w-12 text-center">
         <button 
           className="text-stone-300 hover:text-stone-600 cursor-grab active:cursor-grabbing p-1 rounded transition-colors"
@@ -107,6 +119,8 @@ export default function ProductsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkLoading, setIsBulkLoading] = useState(false);
   const showNotification = useStore(state => state.showNotification);
 
   const [formData, setFormData] = useState({
@@ -235,6 +249,36 @@ export default function ProductsPage() {
     }
   };
 
+  const toggleSelectAll = () => {
+    if (selectedIds.size === products.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(products.map(p => p.id)));
+    }
+  };
+
+  const toggleSelectItem = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
+  };
+
+  const handleBulkStatusUpdate = async (is_active: boolean) => {
+    if (selectedIds.size === 0) return;
+    setIsBulkLoading(true);
+    try {
+      await import('../../lib/db').then(m => m.bulkUpdateProductStatus(Array.from(selectedIds), is_active));
+      await fetchProducts();
+      setSelectedIds(new Set());
+      showNotification(`${selectedIds.size} პროდუქტი განახლდა!`, 'success');
+    } catch (err) {
+      showNotification('ჯგუფური განახლება ვერ მოხერხდა', 'error');
+    } finally {
+      setIsBulkLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -277,6 +321,14 @@ export default function ProductsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-stone-50 border-b border-stone-100 text-stone-500 text-sm uppercase tracking-wider">
+                  <th className="p-4 font-medium w-12 text-center">
+                    <input 
+                      type="checkbox"
+                      checked={products.length > 0 && selectedIds.size === products.length}
+                      onChange={toggleSelectAll}
+                      className="w-5 h-5 text-green-600 rounded focus:ring-green-500 border-stone-300 cursor-pointer"
+                    />
+                  </th>
                   <th className="p-4 font-medium w-12 text-center">რიგი</th>
                   <th className="p-4 font-medium">სურათი</th>
                   <th className="p-4 font-medium">სახელი</th>
@@ -296,6 +348,8 @@ export default function ProductsPage() {
                     <SortableTableRow 
                       key={product.id} 
                       product={product} 
+                      isSelected={selectedIds.has(product.id)}
+                      onToggleSelect={toggleSelectItem}
                       onEdit={handleOpenModal}
                       onDelete={handleDelete}
                     />
@@ -313,6 +367,44 @@ export default function ProductsPage() {
           </DndContext>
         </div>
       </div>
+      
+      {/* Bulk Actions Bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-stone-900 border border-white/10 text-white px-8 py-5 rounded-[2rem] shadow-2xl flex items-center gap-10 z-40 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-full bg-orange-600 flex items-center justify-center font-black text-lg">
+              {selectedIds.size}
+            </span>
+            <span className="font-bold text-lg text-stone-300">არჩეულია</span>
+          </div>
+          
+          <div className="h-8 w-px bg-white/20"></div>
+          
+          <div className="flex gap-4">
+            <button
+              onClick={() => handleBulkStatusUpdate(true)}
+              disabled={isBulkLoading}
+              className="px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-stone-700 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95"
+            >
+              {isBulkLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'გააქტიურება'}
+            </button>
+            <button
+              onClick={() => handleBulkStatusUpdate(false)}
+              disabled={isBulkLoading}
+              className="px-6 py-3 bg-red-600 hover:bg-red-700 disabled:bg-stone-700 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95"
+            >
+              {isBulkLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'გათიშვა'}
+            </button>
+          </div>
+          
+          <button 
+            onClick={() => setSelectedIds(new Set())}
+            className="p-3 hover:bg-white/10 rounded-full transition-colors text-stone-400 hover:text-white"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+      )}
 
       {/* Modal View ... unchanged */}
       {isModalOpen && (

@@ -72,13 +72,17 @@ export default function DashboardPage() {
   }, [orders, expenses, period]);
 
   const topProducts = useMemo(() => {
-    const productSales = new Map<string, { quantity: number; name: string }>();
+    const productSales = new Map<string, { quantity: number; revenue: number; name: string }>();
 
     sales.forEach(sale => {
       if (inPeriod(sale.timestamp, period)) {
-        const existing = productSales.get(sale.product_id) || { quantity: 0, name: (sale as any).product_name ?? 'უცნობი' };
-        // We get product_name from the new order_items table column directly
+        const existing = productSales.get(sale.product_id) || { 
+          quantity: 0, 
+          revenue: 0, 
+          name: (sale as any).product_name ?? 'უცნობი' 
+        };
         existing.quantity += sale.quantity;
+        existing.revenue += sale.quantity * sale.price_at_sale;
         productSales.set(sale.product_id, existing);
       }
     });
@@ -87,8 +91,9 @@ export default function DashboardPage() {
       .map(([id, data]) => ({
         name: data.name,
         quantity: data.quantity,
+        revenue: data.revenue
       }))
-      .sort((a, b) => b.quantity - a.quantity)
+      .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
   }, [sales, period]);
 
@@ -257,9 +262,12 @@ export default function DashboardPage() {
                     <div className="w-8 h-8 rounded-full bg-orange-100 text-green-600 flex items-center justify-center font-bold text-sm">
                       {index + 1}
                     </div>
-                    <span className="font-medium text-stone-800">{product.name}</span>
+                    <div>
+                      <div className="font-bold text-stone-800">{product.name}</div>
+                      <div className="text-xs font-medium text-stone-400">{product.quantity} ცალი</div>
+                    </div>
                   </div>
-                  <span className="font-bold text-stone-900">{product.quantity} ცალი</span>
+                  <span className="font-black text-stone-900">{product.revenue.toFixed(2)}₾</span>
                 </div>
               ))
             )}

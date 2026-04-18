@@ -295,11 +295,24 @@ export default function StockInPage() {
   };
 
   const handleCancel = () => {
-    showNotification('ნამდვილად გსურთ გაუქმება? მონაცემები წაიშლება.', 'error', true, () => {
-      setItems([]);
-      localStorage.removeItem('stock-in-draft');
+    const itemCount = items.length;
+    const totalCost = items.reduce((sum, item) => sum + (item.total || 0), 0).toFixed(2);
+    
+    if (itemCount === 0) {
       navigate('/');
-    });
+      return;
+    }
+
+    showNotification(
+      `ნამდვილად გსურთ გაუქმება? წაიშლება ${itemCount} პროდუქტი (ჯამში ${totalCost}₾).`, 
+      'error', 
+      true, 
+      () => {
+        setItems([]);
+        localStorage.removeItem('stock-in-draft');
+        navigate('/');
+      }
+    );
   };
 
   return (

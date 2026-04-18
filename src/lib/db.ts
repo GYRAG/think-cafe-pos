@@ -53,6 +53,15 @@ export async function deleteProduct(id: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function bulkUpdateProductStatus(ids: string[], is_active: boolean): Promise<void> {
+  if (ids.length === 0) return;
+  const { error } = await supabase
+    .from('products')
+    .update({ is_active })
+    .in('id', ids);
+  if (error) throw error;
+}
+
 // ── Orders ────────────────────────────────────────────────────────────
 
 export async function getOrders(): Promise<Order[]> {
