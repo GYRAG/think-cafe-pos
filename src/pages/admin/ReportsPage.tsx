@@ -15,6 +15,7 @@ export default function ReportsPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const [period, setPeriod] = useState<Period>('this_month');
   const [startDate, setStartDate] = useState(format(subDays(new Date(), 7), 'yyyy-MM-dd'));
@@ -204,70 +205,83 @@ export default function ReportsPage() {
       .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
   }, [expenses, period, startDate, endDate]);
 
-  const handleExportCSV = () => {
-    const BOM = '\uFEFF';
-    const headers = ['პერიოდი', 'შემოსავალი', 'ხარჯები', 'წმინდა მოგება'];
-    const rows = reportData.map(row => [
-      row.name,
-      row.შემოსავალი.toFixed(2),
-      row.ხარჯი.toFixed(2),
-      row['წმინდა მოგება'].toFixed(2)
-    ]);
-    const csvContent = BOM + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `reports_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    link.click();
+  const handleExportCSV = async () => {
+    setIsExporting(true);
+    try {
+      const BOM = '\uFEFF';
+      const headers = ['პერიოდი', 'შემოსავალი', 'ხარჯები', 'წმინდა მოგება'];
+      const rows = reportData.map(row => [
+        row.name,
+        row.შემოსავალი.toFixed(2),
+        row.ხარჯი.toFixed(2),
+        row['წმინდა მოგება'].toFixed(2)
+      ]);
+      const csvContent = BOM + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `reports_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      link.click();
+    } finally {
+      // Small delay to ensure the UI feedback is visible even on fast operations
+      setTimeout(() => setIsExporting(false), 500);
+    }
   };
 
   const handleExportExcel = async () => {
-    const XLSX = await import('xlsx');
-    const workbook = XLSX.utils.book_new();
+    setIsExporting(true);
+    try {
+      const XLSX = await import('xlsx');
+      const workbook = XLSX.utils.book_new();
 
-    const finData = reportData.map(row => ({
-      'პერიოდი': row.name,
-      'შემოსავალი': Number(row.შემოსავალი.toFixed(2)),
-      'ხარჯები': Number(row.ხარჯი.toFixed(2)),
-      'წმინდა მოგება': Number(row['წმინდა მოგება'].toFixed(2))
-    }));
-    const wsFin = XLSX.utils.json_to_sheet(finData);
-    wsFin['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
-    XLSX.utils.book_append_sheet(workbook, wsFin, 'ფინანსები');
-
-    const prodData = productsSoldData.map(p => ({
-      'პროდუქტის სახელი': p.name,
-      'რაოდენობა': p.quantity,
-      'შემოსავალი': Number(p.revenue.toFixed(2))
-    }));
-    const wsProd = XLSX.utils.json_to_sheet(prodData);
-    wsProd['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 20 }];
-    XLSX.utils.book_append_sheet(workbook, wsProd, 'გაყიდვები');
-
-    const ingData = ingredientsBoughtData.map(ing => ({
-      'ინგრედიენტი': ing.name,
-      'რაოდენობა': `${ing.quantity} ${ing.unit}`,
-      'საშ. ფასი': Number(ing.avg_price.toFixed(2)),
-      'ჯამში დახარჯული (₾)': Number(ing.total.toFixed(2))
-    }));
-    const wsIng = XLSX.utils.json_to_sheet(ingData);
-    wsIng['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 20 }];
-    XLSX.utils.book_append_sheet(workbook, wsIng, 'შეძენილი ინგრედიენტები');
-
-    const expData = expenses
-      .filter(e => isDateInRange(e.timestamp))
-      .map(e => ({
-        'თარიღი': format(parseISO(e.timestamp), 'yyyy-MM-dd HH:mm'),
-        'კატეგორია': e.category,
-        'დასახელება': e.title,
-        'თანხა (₾)': Number(e.amount.toFixed(2)),
-        'კომენტარი': e.notes || ''
+      const finData = reportData.map(row => ({
+        'პერიოდი': row.name,
+        'შემოსავალი': Number(row.შემოსავალი.toFixed(2)),
+        'ხარჯები': Number(row.ხარჯი.toFixed(2)),
+        'წმინდა მოგება': Number(row['წმინდა მოგება'].toFixed(2))
       }));
-    const wsExp = XLSX.utils.json_to_sheet(expData);
-    wsExp['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 40 }];
-    XLSX.utils.book_append_sheet(workbook, wsExp, 'ხარჯები');
+      const wsFin = XLSX.utils.json_to_sheet(finData);
+      wsFin['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+      XLSX.utils.book_append_sheet(workbook, wsFin, 'ფინანსები');
 
-    XLSX.writeFile(workbook, `full_report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+      const prodData = productsSoldData.map(p => ({
+        'პროდუქტის სახელი': p.name,
+        'რაოდენობა': p.quantity,
+        'შემოსავალი': Number(p.revenue.toFixed(2))
+      }));
+      const wsProd = XLSX.utils.json_to_sheet(prodData);
+      wsProd['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 20 }];
+      XLSX.utils.book_append_sheet(workbook, wsProd, 'გაყიდვები');
+
+      const ingData = ingredientsBoughtData.map(ing => ({
+        'ინგრედიენტი': ing.name,
+        'რაოდენობა': `${ing.quantity} ${ing.unit}`,
+        'საშ. ფასი': Number(ing.avg_price.toFixed(2)),
+        'ჯამში დახარჯული (₾)': Number(ing.total.toFixed(2))
+      }));
+      const wsIng = XLSX.utils.json_to_sheet(ingData);
+      wsIng['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 20 }];
+      XLSX.utils.book_append_sheet(workbook, wsIng, 'შეძენილი ინგრედიენტები');
+
+      const expData = expenses
+        .filter(e => isDateInRange(e.timestamp))
+        .map(e => ({
+          'თარიღი': format(parseISO(e.timestamp), 'yyyy-MM-dd HH:mm'),
+          'კატეგორია': e.category,
+          'დასახელება': e.title,
+          'თანხა (₾)': Number(e.amount.toFixed(2)),
+          'კომენტარი': e.notes || ''
+        }));
+      const wsExp = XLSX.utils.json_to_sheet(expData);
+      wsExp['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 40 }];
+      XLSX.utils.book_append_sheet(workbook, wsExp, 'ხარჯები');
+
+      XLSX.writeFile(workbook, `full_report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    } catch (err) {
+      console.error('Export failed:', err);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   if (loading) {
@@ -300,11 +314,24 @@ export default function ReportsPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button onClick={handleExportCSV} className="flex items-center gap-2 px-4 py-2 bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 rounded-xl font-bold transition-colors shadow-sm">
-            <Download className="w-4 h-4" /> CSV
+          <button 
+            onClick={handleExportCSV} 
+            disabled={isExporting}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-stone-200 hover:bg-stone-50 disabled:bg-stone-50 disabled:text-stone-400 text-stone-700 rounded-xl font-bold transition-colors shadow-sm"
+          >
+            {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            CSV
           </button>
-          <button onClick={handleExportExcel} className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-colors shadow-sm shadow-green-600/20">
-            <FileSpreadsheet className="w-4 h-4" /> Excel ჩამოტვირთვა
+          <button 
+            onClick={handleExportExcel} 
+            disabled={isExporting}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-stone-400 text-white rounded-xl font-bold transition-colors shadow-sm shadow-green-600/20"
+          >
+            {isExporting ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> მზადდება...</>
+            ) : (
+              <><FileSpreadsheet className="w-4 h-4" /> Excel ჩამოტვირთვა</>
+            )}
           </button>
         </div>
       </div>

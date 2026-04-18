@@ -20,7 +20,6 @@ const ProductsPage  = lazy(() => import('./pages/admin/ProductsPage'));
 const ExpensesPage  = lazy(() => import('./pages/admin/ExpensesPage'));
 const ReportsPage   = lazy(() => import('./pages/admin/ReportsPage'));
 const IngredientsPage = lazy(() => import('./pages/admin/IngredientsPage'));
-const UsersPage     = lazy(() => import('./pages/admin/UsersPage'));
 
 const PageSpinner = () => (
   <div className="flex items-center justify-center h-full min-h-screen bg-stone-100">
@@ -102,7 +101,6 @@ function App() {
               <Route path="expenses"  element={<ExpensesPage />} />
               <Route path="reports"   element={<ReportsPage />} />
               <Route path="ingredients" element={<IngredientsPage />} />
-              <Route path="users"     element={<UsersPage />} />
             </Route>
           ) : (
             <Route path="/admin/*" element={<Navigate to="/" replace />} />

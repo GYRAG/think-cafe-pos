@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useStore } from '../store';
-import { LogOut, LayoutDashboard, Package, Receipt, BarChart3, Users, ArrowLeft, Power } from 'lucide-react';
+import { LogOut, LayoutDashboard, Package, Receipt, BarChart3, ArrowLeft, Power } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export default function AdminLayout() {
@@ -15,7 +15,6 @@ export default function AdminLayout() {
     { path: '/admin/expenses', icon: Receipt, label: 'ხარჯები' },
     { path: '/admin/reports', icon: BarChart3, label: 'რეპორტები' },
     { path: '/admin/ingredients', icon: Package, label: 'ინგრედიენტები' },
-    { path: '/admin/users', icon: Users, label: 'მომხმარებლები' },
   ];
 
   return (
