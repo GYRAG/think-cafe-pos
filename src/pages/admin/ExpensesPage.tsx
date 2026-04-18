@@ -3,6 +3,7 @@ import { Expense } from '../../types';
 import { getExpenses, addExpense, updateExpense, deleteExpense } from '../../lib/db';
 import { Plus, Edit2, Trash2, X, Loader2, RotateCcw } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { useStore } from '../../store';
 
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -12,6 +13,7 @@ export default function ExpensesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const showNotification = useStore(state => state.showNotification);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -83,21 +85,24 @@ export default function ExpensesPage() {
       }
       await fetchExpenses(); // Reload
       setIsModalOpen(false);
+      showNotification('ხარჯი წარმატებით შენახულია!', 'success');
     } catch (err) {
-      alert('შენახვა ვერ მოხერხდა');
+      showNotification('შენახვა ვერ მოხერხდა', 'error');
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('ნამდვილად გსურთ წაშლა?')) return;
-    try {
-      await deleteExpense(id);
-      await fetchExpenses();
-    } catch (err) {
-      alert('წაშლა ვერ მოხერხდა');
-    }
+    showNotification('ნამდვილად გსურთ წაშლა?', 'error', true, async () => {
+      try {
+        await deleteExpense(id);
+        await fetchExpenses();
+        showNotification('ხარჯი წარმატებით წაიშალა!', 'success');
+      } catch (err) {
+        showNotification('წაშლა ვერ მოხერხდა', 'error');
+      }
+    });
   };
 
   if (loading) {

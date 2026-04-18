@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Check, X, Loader2 } from 'lucide-react';
 import { getIngredients, addIngredient, updateIngredient, deleteIngredient } from '../../lib/db';
 import { Ingredient } from '../../types';
+import { useStore } from '../../store';
 
 export default function IngredientsPage() {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
+  const showNotification = useStore(state => state.showNotification);
   
   // Forms
   const [newName, setNewName] = useState('');
@@ -24,7 +26,7 @@ export default function IngredientsPage() {
       const data = await getIngredients();
       setIngredients(data);
     } catch (err: any) {
-      alert(`ვერ ჩაიტვირთა อินგრედიენტები: ${err?.message}`);
+      showNotification(`ვერ ჩაიტვირთა ინგრედიენტები: ${err?.message}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -43,8 +45,9 @@ export default function IngredientsPage() {
       setNewName('');
       setNewCategory('ზოგადი');
       setNewUnit('კგ');
+      showNotification('წარმატებით დაემატა!', 'success');
     } catch (err: any) {
-      alert(`შეცდომა დამატებისას: ${err?.message}`);
+      showNotification(`შეცდომა დამატებისას: ${err?.message}`, 'error');
     }
   };
 
@@ -61,19 +64,22 @@ export default function IngredientsPage() {
       await updateIngredient(id, { name: editName.trim(), category: editCategory.trim() || 'ზოგადი', unit: editUnit.trim() });
       await fetchIngredients();
       setEditingId(null);
+      showNotification('წარმატებით განახლდა!', 'success');
     } catch (err: any) {
-      alert(`შეცდომა განახლებისას: ${err?.message}`);
+      showNotification(`შეცდომა განახლებისას: ${err?.message}`, 'error');
     }
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`ნამდვილად გსურთ წაშალოთ "${name}"?`)) return;
-    try {
-      await deleteIngredient(id);
-      await fetchIngredients();
-    } catch (err: any) {
-      alert(`შეცდომა წაშლისას: ${err?.message}`);
-    }
+    showNotification(`ნამდვილად გსურთ წაშალოთ "${name}"?`, 'error', true, async () => {
+      try {
+        await deleteIngredient(id);
+        await fetchIngredients();
+        showNotification('წარმატებით წაიშალა!', 'success');
+      } catch (err: any) {
+        showNotification(`შეცდომა წაშლისას: ${err?.message}`, 'error');
+      }
+    });
   };
 
   return (

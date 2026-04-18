@@ -14,6 +14,7 @@ export default function POSPage() {
   const addToCart = useStore(state => state.addToCart);
   const updateCartQuantity = useStore(state => state.updateCartQuantity);
   const clearCart = useStore(state => state.clearCart);
+  const showNotification = useStore(state => state.showNotification);
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -62,7 +63,7 @@ export default function POSPage() {
       } catch (err: any) {
         const msg = err?.message ?? JSON.stringify(err);
         console.error('[completeOrder] Failed:', err);
-        alert(`შეკვეთის დასრულება ვერ მოხერხდა:\n${msg}`);
+        showNotification(`შეკვეთის დასრულება ვერ მოხერხდა:\n${msg}`, 'error');
       } finally {
         setCheckingOut(false);
       }

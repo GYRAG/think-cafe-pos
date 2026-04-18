@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Product } from '../../types';
 import { getProducts, upsertProduct, deleteProduct, updateProductOrder } from '../../lib/db';
 import { Plus, Edit2, Trash2, X, Loader2, RotateCcw, GripVertical } from 'lucide-react';
+import { useStore } from '../../store';
 import {
   DndContext,
   closestCenter,
@@ -106,6 +107,7 @@ export default function ProductsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const showNotification = useStore(state => state.showNotification);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -136,6 +138,7 @@ export default function ProductsPage() {
       setProducts(data);
     } catch (err: any) {
       setError(err.message || 'ვერ მოხერხდა პროდუქტების ჩატვირთვა');
+      showNotification(`შეცდომა ჩატვირთვისას: ${err?.message}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -187,21 +190,24 @@ export default function ProductsPage() {
       await upsertProduct(productData);
       await fetchProducts();
       setIsModalOpen(false);
+      showNotification('პროდუქტი წარმატებით შეინახა!', 'success');
     } catch (err) {
-      alert('შენახვა ვერ მოხერხდა');
+      showNotification('შენახვა ვერ მოხერხდა', 'error');
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('ნამდვილად გსურთ წაშლა?')) return;
-    try {
-      await deleteProduct(id);
-      await fetchProducts();
-    } catch (err) {
-      alert('წაშლა ვერ მოხერხდა');
-    }
+    showNotification('ნამდვილად გსურთ წაშლა?', 'error', true, async () => {
+      try {
+        await deleteProduct(id);
+        await fetchProducts();
+        showNotification('წაშლა წარმატებით დასრულდა!', 'success');
+      } catch (err) {
+        showNotification('წაშლა ვერ მოხერხდა', 'error');
+      }
+    });
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -223,7 +229,7 @@ export default function ProductsPage() {
       try {
         await updateProductOrder(updates);
       } catch (err) {
-        alert('თანმიმდევრობის შენახვა ვერ მოხერხდა');
+        showNotification('თანმიმდევრობის შენახვა ვერ მოხერხდა', 'error');
         await fetchProducts(); // Revert on failure
       }
     }

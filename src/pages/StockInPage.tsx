@@ -4,21 +4,15 @@ import { ArrowLeft, Trash2, Plus, Save, X, Loader2, Delete } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid';
 import { addPurchases, getIngredients, getPurchases } from '../lib/db';
 import { Purchase, Ingredient } from '../types';
+import { useStore } from '../store';
 
 export default function StockInPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<'quick' | 'ingredient' | 'manual'>('quick');
+  const [mode, setMode] = useState<'ingredient' | 'manual'>('ingredient');
   const [items, setItems] = useState<Partial<Purchase>[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Notification State
-  const [notification, setNotification] = useState<{ 
-    isOpen: boolean; 
-    message: string; 
-    type: 'success' | 'error'; 
-    isConfirm?: boolean; 
-    onConfirm?: () => void 
-  } | null>(null);
+  const showNotification = useStore(state => state.showNotification);
 
   // Dynamic Ingredients List
   const [ingredientsList, setIngredientsList] = useState<Ingredient[]>([]);
@@ -26,26 +20,30 @@ export default function StockInPage() {
   const [isLoadingIngs, setIsLoadingIngs] = useState(true);
 
   // Form State - Ingredient
-  const [selectedIngredient, setSelectedIngredient] = useState('');
+  const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
   const [ingQuantity, setIngQuantity] = useState('');
   const [ingPricePerUnit, setIngPricePerUnit] = useState('');
+  const [ingTotalPrice, setIngTotalPrice] = useState('');
 
-  // Form State - Quick
-  const [quickName, setQuickName] = useState('');
-  const [quickTotal, setQuickTotal] = useState('');
+  const [allPastPurchases, setAllPastPurchases] = useState<Purchase[]>([]);
+  const [isDistributing, setIsDistributing] = useState(false);
+  const [distTotalValue, setDistTotalValue] = useState('');
+  const [distributionItems, setDistributionItems] = useState<{
+    id: string;
+    ingredient_id: string;
+    name: string;
+    unit: string;
+    quantity: string;
+    share: string;
+  }[]>([]);
 
   // Form State - Manual
   const [manName, setManName] = useState('');
   const [manQuantity, setManQuantity] = useState('');
   const [manTotal, setManTotal] = useState('');
 
-  // Recent Quick Names
-  const [recentQuickNames, setRecentQuickNames] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem('quick-recent-names') || '[]'); } catch { return []; }
-  });
-
   // Numpad State
-  const [numpadTarget, setNumpadTarget] = useState<'ingPrice' | 'manQuantity' | 'manTotal' | 'quickTotal' | null>(null);
+  const [numpadTarget, setNumpadTarget] = useState<'ingPrice' | 'ingTotal' | 'manQuantity' | 'manTotal' | null>(null);
   const [numpadValue, setNumpadValue] = useState('');
 
   const handleNumpadInput = (val: string) => {
@@ -66,18 +64,20 @@ export default function StockInPage() {
   const handleNumpadConfirm = () => {
     if (numpadTarget === 'ingPrice') {
       setIngPricePerUnit(numpadValue);
+    } else if (numpadTarget === 'ingTotal') {
+      setIngTotalPrice(numpadValue);
     } else if (numpadTarget === 'manQuantity') {
       setManQuantity(numpadValue);
     } else if (numpadTarget === 'manTotal') {
       setManTotal(numpadValue);
     } else if (numpadTarget === 'quickTotal') {
-      setQuickTotal(numpadValue);
+      // Removed
     }
     setNumpadTarget(null);
   };
 
   // Keyboard State
-  const [keyboardTarget, setKeyboardTarget] = useState<'manName' | 'quickName' | null>(null);
+  const [keyboardTarget, setKeyboardTarget] = useState<'manName' | null>(null);
   const [keyboardValue, setKeyboardValue] = useState('');
 
   const handleKeyboardInput = (val: string) => {
@@ -94,7 +94,7 @@ export default function StockInPage() {
     if (keyboardTarget === 'manName') {
       setManName(keyboardValue);
     } else if (keyboardTarget === 'quickName') {
-      setQuickName(keyboardValue);
+      // Removed
     }
     setKeyboardTarget(null);
   };
@@ -115,6 +115,7 @@ export default function StockInPage() {
           getIngredients(),
           getPurchases()
         ]);
+        setAllPastPurchases(purchasesData);
         
         // Process Recent and Most Used
         const ingredientPurchases = purchasesData.filter(p => p.type === 'ingredient' && p.ingredient_id);
@@ -173,9 +174,9 @@ export default function StockInPage() {
         setCategoryGroups(groups);
 
         if (groups.length > 0 && groups[0].ingredients.length > 0) {
-          setSelectedIngredient(groups[0].ingredients[0].id);
+          setSelectedIngredients([]);
         } else if (data.length > 0) {
-          setSelectedIngredient(data[0].id);
+          setSelectedIngredients([]);
         }
       } catch (err) {
         console.error("Failed to fetch ingredients", err);
@@ -202,49 +203,61 @@ export default function StockInPage() {
   const totalAmount = useMemo(() => items.reduce((sum, item) => sum + (item.total || 0), 0), [items]);
 
   const handleAddIngredient = () => {
-    const qty = parseFloat(ingQuantity);
-    const ppu = parseFloat(ingPricePerUnit);
-    if (!qty || !ppu || qty <= 0 || ppu <= 0) return;
+    if (selectedIngredients.length === 0) return;
 
-    const ing = ingredientsList.find(i => i.id === selectedIngredient)!;
-    
-    setItems(prev => [...prev, {
-      id: uuidv4(),
-      type: 'ingredient',
-      ingredient_id: ing.id,
-      name: ing.name,
-      quantity: qty,
-      unit: ing.unit,
-      price_per_unit: ppu,
-      total: qty * ppu
-    }]);
+    if (selectedIngredients.length === 1) {
+      const qty = parseFloat(ingQuantity);
+      if (!qty || qty <= 0) return;
+      
+      const ppu = parseFloat(ingPricePerUnit);
+      if (!ppu || ppu <= 0) return;
 
-    setIngQuantity('');
-    setIngPricePerUnit('');
+      const ing = ingredientsList.find(i => i.id === selectedIngredients[0])!;
+      setItems(prev => [...prev, {
+        id: uuidv4(),
+        type: 'ingredient' as const,
+        ingredient_id: ing.id,
+        name: ing.name,
+        quantity: qty,
+        unit: ing.unit,
+        price_per_unit: ppu,
+        total: qty * ppu
+      }]);
+      
+      setSelectedIngredients([]);
+      setIngQuantity('');
+      setIngPricePerUnit('');
+      setIngTotalPrice('');
+    } else {
+      const total = parseFloat(ingTotalPrice);
+      if (!total || total <= 0) return;
+
+      setDistTotalValue(ingTotalPrice);
+      
+      const newDistItems = selectedIngredients.map(ingId => {
+        const ing = ingredientsList.find(i => i.id === ingId)!;
+        return {
+          id: uuidv4(),
+          ingredient_id: ing.id,
+          name: ing.name,
+          unit: ing.unit,
+          quantity: ingQuantity || '1',
+          share: (total / selectedIngredients.length).toFixed(2)
+        };
+      });
+      
+      setDistributionItems(newDistItems);
+      setIsDistributing(true);
+    }
   };
 
-  const handleAddQuick = () => {
-    const total = parseFloat(quickTotal);
-    const name = quickName.trim();
-    if (!name || !total || total <= 0) return;
-
-    setItems(prev => [...prev, {
-      id: uuidv4(),
-      type: 'quick',
-      name,
-      quantity: 0,
-      total
-    }]);
-
-    // Update recent names (keep last 5 unique)
-    setRecentQuickNames(prev => {
-      const updated = [name, ...prev.filter(n => n !== name)].slice(0, 5);
-      localStorage.setItem('quick-recent-names', JSON.stringify(updated));
-      return updated;
-    });
-
-    setQuickName('');
-    setQuickTotal('');
+  const getPriceMemory = (ingredientId: string) => {
+    const history = allPastPurchases
+      .filter(p => p.ingredient_id === ingredientId)
+      .map(p => p.price_per_unit)
+      .filter((v, i, a) => a.indexOf(v) === i) // unique
+      .slice(0, 3);
+    return history;
   };
 
   const handleAddManual = () => {
@@ -265,6 +278,54 @@ export default function StockInPage() {
     setManTotal('');
   };
 
+  const updateDistItem = (id: string, updates: Partial<typeof distributionItems[0]>) => {
+    setDistributionItems(prev => prev.map(item => {
+      if (item.id !== id) return item;
+      const newValues = { ...item, ...updates };
+      // Ensure share is never negative
+      if (updates.share !== undefined) {
+        newValues.share = Math.max(0, parseFloat(updates.share) || 0).toString();
+      }
+      return newValues;
+    }));
+  };
+
+  const distAllocated = distributionItems.reduce((sum, item) => sum + (parseFloat(item.share) || 0), 0);
+  const distRemain = parseFloat(distTotalValue || '0') - distAllocated;
+
+  const handleDistributionComplete = () => {
+    const itemsToAdd = distributionItems.map(item => {
+      const qty = parseFloat(item.quantity) || 1;
+      const share = parseFloat(item.share) || 0;
+      return {
+        id: item.id,
+        type: 'ingredient' as const,
+        ingredient_id: item.ingredient_id,
+        name: item.name,
+        quantity: qty,
+        unit: item.unit,
+        price_per_unit: share / qty,
+        total: share
+      };
+    });
+
+    setItems(prev => [...prev, ...itemsToAdd]);
+    setIsDistributing(false);
+    setSelectedIngredients([]);
+    setIngQuantity('');
+    setIngPricePerUnit('');
+    setIngTotalPrice('');
+  };
+
+  const autoBalanceDist = () => {
+    if (distRemain === 0) return;
+    const balancePerItem = distRemain / distributionItems.length;
+    setDistributionItems(prev => prev.map(item => ({
+      ...item,
+      share: Math.max(0, parseFloat(item.share || '0') + balancePerItem).toFixed(2)
+    })));
+  };
+
   const handleRemoveItem = (id: string) => {
     setItems(prev => prev.filter(item => item.id !== id));
   };
@@ -276,34 +337,20 @@ export default function StockInPage() {
       await addPurchases(items as Omit<Purchase, 'id' | 'created_at'>[]);
       setItems([]);
       localStorage.removeItem('stock-in-draft');
-      setNotification({
-        isOpen: true,
-        type: 'success',
-        message: 'წარმატებით შეინახა!'
-      });
+      showNotification('წარმატებით შეინახა!', 'success');
       setTimeout(() => navigate('/'), 1500);
     } catch (err: any) {
-      setNotification({
-        isOpen: true,
-        type: 'error',
-        message: `შენახვა ვერ მოხერხდა: ${err?.message || 'უცნობი შეცდომა'}`
-      });
+      showNotification(`შენახვა ვერ მოხერხდა: ${err?.message || 'უცნობი შეცდომა'}`, 'error');
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleCancel = () => {
-    setNotification({
-      isOpen: true,
-      type: 'error',
-      isConfirm: true,
-      message: 'ნამდვილად გსურთ გაუქმება? მონაცემები წაიშლება.',
-      onConfirm: () => {
-        setItems([]);
-        localStorage.removeItem('stock-in-draft');
-        navigate('/');
-      }
+    showNotification('ნამდვილად გსურთ გაუქმება? მონაცემები წაიშლება.', 'error', true, () => {
+      setItems([]);
+      localStorage.removeItem('stock-in-draft');
+      navigate('/');
     });
   };
 
@@ -336,12 +383,6 @@ export default function StockInPage() {
           {/* Mode Toggle */}
           <div className="bg-white rounded-2xl shadow-sm border border-stone-200 flex p-1">
             <button
-              onClick={() => setMode('quick')}
-              className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${mode === 'quick' ? 'bg-green-600 text-white shadow-md' : 'text-stone-600 hover:bg-stone-50'}`}
-            >
-              სწრაფი შეძენა
-            </button>
-            <button
               onClick={() => setMode('ingredient')}
               className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${mode === 'ingredient' ? 'bg-green-600 text-white shadow-md' : 'text-stone-600 hover:bg-stone-50'}`}
             >
@@ -357,61 +398,7 @@ export default function StockInPage() {
 
           {/* Form container */}
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-stone-200 flex-1 flex flex-col">
-            {mode === 'quick' ? (
-              <div className="space-y-5 flex-1">
-                {/* Recent names chips */}
-                {recentQuickNames.length > 0 && (
-                  <div>
-                    <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">ბოლოს გამოყენებული</label>
-                    <div className="flex flex-wrap gap-2">
-                      {recentQuickNames.map(name => (
-                        <button
-                          key={name}
-                          onClick={() => setQuickName(name)}
-                          className="px-3 py-1.5 bg-stone-100 hover:bg-green-50 hover:text-green-700 text-stone-700 rounded-lg text-sm font-medium border border-stone-200 hover:border-green-200 transition-colors"
-                        >
-                          {name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-bold text-stone-700 mb-2">პროდუქტის სახელი</label>
-                  <div
-                    onClick={() => { setKeyboardValue(quickName); setKeyboardTarget('quickName'); }}
-                    className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 cursor-pointer font-medium flex items-center transition-colors min-h-[50px]"
-                  >
-                    <span className={quickName ? 'text-stone-900' : 'text-stone-400'}>
-                      {quickName || 'მაგ. ფქვილი'}
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-stone-700 mb-2">მთლიანი ფასი (₾)</label>
-                  <div
-                    onClick={() => { setNumpadValue(quickTotal); setNumpadTarget('quickTotal'); }}
-                    className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 cursor-pointer font-medium flex items-center transition-colors"
-                  >
-                    <span className={quickTotal ? 'text-stone-900' : 'text-stone-400'}>
-                      {quickTotal || '0.00'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-stone-100 mt-auto">
-                  <button
-                    onClick={handleAddQuick}
-                    disabled={!quickName.trim() || !quickTotal || parseFloat(quickTotal) <= 0}
-                    className="w-full py-4 bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-bold flex items-center justify-center gap-2 transition-colors"
-                  >
-                    <Plus className="w-5 h-5" /> დამატება
-                  </button>
-                </div>
-              </div>
-            ) : mode === 'ingredient' ? (
+            {mode === 'ingredient' ? (
               <div className="space-y-5 flex-1">
                 <div>
                   <label className="block text-sm font-bold text-stone-700 mb-2">ინგრედიენტი</label>
@@ -431,14 +418,14 @@ export default function StockInPage() {
                             {group.ingredients.map(ing => (
                               <button
                                 key={`${group.category}-${ing.id}`}
-                                onClick={() => setSelectedIngredient(ing.id)}
+                                onClick={() => setSelectedIngredients(prev => prev.includes(ing.id) ? prev.filter(id => id !== ing.id) : [...prev, ing.id])}
                                 className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                                  selectedIngredient === ing.id
+                                  selectedIngredients.includes(ing.id)
                                     ? 'bg-green-600 text-white shadow-md border border-green-600'
                                     : 'bg-white text-stone-600 border border-stone-200 hover:border-green-300 hover:bg-green-50/50 hover:text-green-700 shadow-sm'
                                 }`}
                               >
-                                {ing.name} <span className={selectedIngredient === ing.id ? 'text-green-100' : 'text-stone-400'}>({ing.unit})</span>
+                                {ing.name} <span className={selectedIngredients.includes(ing.id) ? 'text-green-100' : 'text-stone-400'}>({ing.unit})</span>
                               </button>
                             ))}
                           </div>
@@ -449,14 +436,14 @@ export default function StockInPage() {
                           {ingredientsList.map(ing => (
                             <button
                               key={ing.id}
-                              onClick={() => setSelectedIngredient(ing.id)}
+                              onClick={() => setSelectedIngredients(prev => prev.includes(ing.id) ? prev.filter(id => id !== ing.id) : [...prev, ing.id])}
                               className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                                selectedIngredient === ing.id
+                                selectedIngredients.includes(ing.id)
                                   ? 'bg-green-600 text-white shadow-md border border-green-600'
                                   : 'bg-white text-stone-600 border border-stone-200 hover:border-green-300 hover:bg-green-50/50 hover:text-green-700 shadow-sm'
                               }`}
                             >
-                              {ing.name} <span className={selectedIngredient === ing.id ? 'text-green-100' : 'text-stone-400'}>({ing.unit})</span>
+                              {ing.name} <span className={selectedIngredients.includes(ing.id) ? 'text-green-100' : 'text-stone-400'}>({ing.unit})</span>
                             </button>
                           ))}
                         </div>
@@ -464,69 +451,114 @@ export default function StockInPage() {
                     </div>
                   )}
                 </div>
-                <div>
-                  <label className="block text-sm font-bold text-stone-700 mb-2">რაოდენობა</label>
-                  <div className="flex flex-col gap-2 mb-2">
-                    <div className="flex gap-2">
-                      {[-10, -5, -1].map(n => (
-                        <button
-                          key={n}
-                          onClick={() => setIngQuantity(Math.max(0, (parseFloat(ingQuantity || '0') + n)).toString())}
-                          className="flex-1 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg transition-colors border border-red-100"
-                        >
-                          {n}
-                        </button>
-                      ))}
+                {selectedIngredients.length <= 1 && (
+                  <div>
+                    <label className="block text-sm font-bold text-stone-700 mb-2">რაოდენობა</label>
+                    <div className="flex flex-col gap-2 mb-2">
+                      <div className="flex gap-2">
+                        {[-10, -5, -1].map(n => (
+                          <button
+                            key={n}
+                            onClick={() => setIngQuantity(Math.max(0, (parseFloat(ingQuantity || '0') + n)).toString())}
+                            className="flex-1 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg transition-colors border border-red-100"
+                          >
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        {[1, 5, 10].map(n => (
+                          <button
+                            key={n}
+                            onClick={() => setIngQuantity((parseFloat(ingQuantity || '0') + n).toString())}
+                            className="flex-1 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-lg transition-colors border border-stone-200"
+                          >
+                            +{n}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      {[1, 5, 10].map(n => (
-                        <button
-                          key={n}
-                          onClick={() => setIngQuantity((parseFloat(ingQuantity || '0') + n).toString())}
-                          className="flex-1 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-lg transition-colors border border-stone-200"
-                        >
-                          +{n}
-                        </button>
-                      ))}
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={ingQuantity}
+                      onChange={e => setIngQuantity(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none font-medium"
+                    />
+                  </div>
+                )}
+                {selectedIngredients.length <= 1 ? (
+                  <>
+                    <div>
+                      <label className="block text-sm font-bold text-stone-700 mb-2">ერთეულის ფასი (₾)</label>
+                      <div 
+                        onClick={() => { setNumpadValue(ingPricePerUnit); setNumpadTarget('ingPrice'); }}
+                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 cursor-pointer font-medium flex items-center transition-colors mb-3"
+                      >
+                        <span className={ingPricePerUnit ? 'text-stone-900' : 'text-stone-400'}>
+                          {ingPricePerUnit || '0.00'}
+                        </span>
+                      </div>
+                      
+                      {/* Price Memory Chips */}
+                      {selectedIngredients.length === 1 && getPriceMemory(selectedIngredients[0]).length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {getPriceMemory(selectedIngredients[0]).map(price => (
+                            <button
+                              key={price}
+                              onClick={() => setIngPricePerUnit(price.toString())}
+                              className="px-3 py-1 bg-stone-100 hover:bg-green-100 text-stone-600 hover:text-green-700 rounded-lg text-xs font-bold border border-stone-200 transition-colors"
+                            >
+                              {price}₾
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={ingQuantity}
-                    onChange={e => setIngQuantity(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-stone-700 mb-2">ერთეულის ფასი (₾)</label>
-                  <div 
-                    onClick={() => { setNumpadValue(ingPricePerUnit); setNumpadTarget('ingPrice'); }}
-                    className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 cursor-pointer font-medium flex items-center transition-colors"
-                  >
-                    <span className={ingPricePerUnit ? 'text-stone-900' : 'text-stone-400'}>
-                      {ingPricePerUnit || '0.00'}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="pt-4 border-t border-stone-100 mt-auto">
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-stone-500 font-medium">ჯამი:</span>
-                    <span className="text-xl font-black text-stone-800">
-                      {ingQuantity && ingPricePerUnit ? (parseFloat(ingQuantity) * parseFloat(ingPricePerUnit)).toFixed(2) : '0.00'}₾
-                    </span>
-                  </div>
-                  <button
-                    onClick={handleAddIngredient}
-                    disabled={!ingQuantity || !ingPricePerUnit}
-                    className="w-full py-4 bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-bold flex items-center justify-center gap-2 transition-colors"
-                  >
-                    <Plus className="w-5 h-5" /> დამატება სიაში
-                  </button>
-                </div>
+                    
+                    <div className="pt-4 border-t border-stone-100 mt-auto">
+                      <div className="flex justify-between items-center mb-4">
+                        <span className="text-stone-500 font-medium">ჯამი:</span>
+                        <span className="text-xl font-black text-stone-800">
+                          {ingQuantity && ingPricePerUnit ? (parseFloat(ingQuantity) * parseFloat(ingPricePerUnit)).toFixed(2) : '0.00'}₾
+                        </span>
+                      </div>
+                      <button
+                        onClick={handleAddIngredient}
+                        disabled={!ingQuantity || !ingPricePerUnit || selectedIngredients.length === 0}
+                        className="w-full py-4 bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-bold flex items-center justify-center gap-2 transition-colors"
+                      >
+                        <Plus className="w-5 h-5" /> დამატება სიაში
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-sm font-bold text-stone-700 mb-2">მთლიანი ფასი (₾)</label>
+                      <div 
+                        onClick={() => { setNumpadValue(ingTotalPrice); setNumpadTarget('ingTotal'); }}
+                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 cursor-pointer font-medium flex items-center transition-colors"
+                      >
+                        <span className={ingTotalPrice ? 'text-stone-900' : 'text-stone-400'}>
+                          {ingTotalPrice || '0.00'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="pt-4 border-t border-stone-100 mt-auto">
+                      <button
+                        onClick={handleAddIngredient}
+                        disabled={!ingTotalPrice || selectedIngredients.length === 0}
+                        className="w-full py-4 bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-bold flex items-center justify-center gap-2 transition-colors"
+                      >
+                        <Plus className="w-5 h-5" /> დამატება სიაში
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             ) : (
               <div className="space-y-5 flex-1">
@@ -675,6 +707,7 @@ export default function StockInPage() {
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-stone-800">
                 {numpadTarget === 'ingPrice' ? 'ერთეულის ფასი' : 
+                 numpadTarget === 'ingTotal' ? 'მთლიანი ფასი' : 
                  numpadTarget === 'manQuantity' ? 'რაოდენობა' : 'მთლიანი ფასი'}
               </h3>
               <button onClick={() => setNumpadTarget(null)} className="p-2 text-stone-400 hover:bg-stone-100 rounded-full transition-colors">
@@ -801,50 +834,116 @@ export default function StockInPage() {
         </div>
       )}
 
-      {/* Notification / Confirm Modal */}
-      {notification?.isOpen && (
-        <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8 flex flex-col items-center text-center transform transition-all duration-200 scale-100">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 ${notification.type === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-              {notification.type === 'success' ? <Save className="w-8 h-8" /> : <Delete className="w-8 h-8" />}
+      {/* Notification Modal is now handled globally in App.tsx */}
+
+      {/* Distribution Modal */}
+      {isDistributing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-8 border-b border-stone-100 flex justify-between items-center bg-stone-50/50">
+              <div>
+                <h3 className="text-2xl font-black text-stone-800">💰 პრიზების განაწილება</h3>
+                <p className="text-stone-500 font-medium mt-1">მთლიანი ჩეკი: <span className="text-stone-900 font-bold">{distTotalValue}₾</span></p>
+              </div>
+              <button 
+                onClick={() => setIsDistributing(false)}
+                className="p-3 bg-white hover:bg-stone-100 text-stone-400 rounded-2xl transition-all border border-stone-200"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
-            <h3 className="text-2xl font-black text-stone-800 tracking-tight mb-2">
-              {notification.type === 'success' ? 'წარმატებული' : 'ყურადღება'}
-            </h3>
-            <p className="text-stone-500 font-medium mb-8 text-lg">
-              {notification.message}
-            </p>
-            
-            {notification.isConfirm ? (
-              <div className="flex gap-4 w-full">
+
+            <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+              {distributionItems.map((item) => (
+                <div key={item.id} className="p-6 bg-stone-50 rounded-3xl border border-stone-200 shadow-sm transition-all hover:shadow-md">
+                  <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <h4 className="text-lg font-black text-stone-800">{item.name}</h4>
+                      <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">{item.unit}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs font-bold text-stone-400 uppercase mb-1">რაოდენობა</div>
+                      <input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => updateDistItem(item.id, { quantity: e.target.value })}
+                        className="w-24 px-3 py-2 bg-white border border-stone-200 rounded-xl text-right font-black text-stone-800 focus:ring-2 focus:ring-green-500 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-end gap-6">
+                      <div className="flex-1">
+                        <div className="flex justify-between mb-2">
+                          <label className="text-sm font-bold text-stone-600">წილი ჩეკში</label>
+                          <span className="text-sm font-black text-green-600">{item.share}₾</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max={Math.max(0, parseFloat(item.share) + distRemain)}
+                          step="0.01"
+                          value={item.share}
+                          onChange={(e) => updateDistItem(item.id, { share: e.target.value })}
+                          className="w-full accent-green-600 cursor-pointer h-2 bg-stone-200 rounded-lg appearance-none"
+                        />
+                      </div>
+                      <div className="w-32">
+                        <input
+                          type="number"
+                          value={item.share}
+                          onChange={(e) => updateDistItem(item.id, { share: e.target.value })}
+                          className="w-full px-4 py-3 bg-white border border-stone-200 rounded-xl font-black text-stone-800 text-center focus:ring-2 focus:ring-green-500 outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Price Memory in Modal */}
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      <span className="text-[10px] font-black text-stone-400 uppercase tracking-tighter self-center mr-1">ბოლო:</span>
+                      {getPriceMemory(item.ingredient_id).map(price => (
+                        <button
+                          key={price}
+                          onClick={() => updateDistItem(item.id, { share: (parseFloat(item.quantity) * price).toFixed(2) })}
+                          className="px-2.5 py-1 bg-white hover:bg-green-50 text-[11px] font-bold text-stone-500 hover:text-green-700 rounded-lg border border-stone-200 hover:border-green-200 transition-all"
+                        >
+                          {price}₾
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-8 bg-stone-50 border-t border-stone-100">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <div className="text-xs font-bold text-stone-400 uppercase mb-1">
+                    {distRemain < -0.01 ? '❌ ზედმეტია განაწილებული' : 'დარჩენილია გასანაწილებელი'}
+                  </div>
+                  <div className={`text-2xl font-black ${distRemain < -0.01 ? 'text-red-600 animate-pulse' : distRemain > 0.01 ? 'text-blue-600' : 'text-green-600'}`}>
+                    {distRemain.toFixed(2)}₾
+                  </div>
+                </div>
                 <button
-                  onClick={() => setNotification(null)}
-                  className="flex-1 py-4 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold transition-colors"
+                  onClick={autoBalanceDist}
+                  className="px-6 py-3 bg-stone-200 hover:bg-stone-300 text-stone-700 rounded-2xl font-bold transition-all flex items-center gap-2"
                 >
-                  არა
-                </button>
-                <button
-                  onClick={() => {
-                    notification.onConfirm?.();
-                    setNotification(null);
-                  }}
-                  className="flex-1 py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-red-600/20"
-                >
-                  დიახ, გაუქმება
+                  გათანაბრება
                 </button>
               </div>
-            ) : (
               <button
-                onClick={() => setNotification(null)}
-                className={`w-full py-4 text-white rounded-xl font-bold transition-colors shadow-lg ${notification.type === 'success' ? 'bg-green-600 hover:bg-green-700 shadow-green-600/20' : 'bg-red-600 hover:bg-red-700 shadow-red-600/20'}`}
+                onClick={handleDistributionComplete}
+                className="w-full py-5 bg-green-600 hover:bg-green-700 text-white rounded-[2rem] font-black text-xl shadow-lg shadow-green-100 transition-all flex items-center justify-center gap-3"
               >
-                დახურვა
+                <Plus className="w-8 h-8" /> სიაში დამატება
               </button>
-            )}
+            </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }

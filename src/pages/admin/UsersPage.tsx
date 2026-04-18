@@ -11,6 +11,7 @@ export default function UsersPage() {
   // Since we didn't add users array to the store initially, let's just mock it for the UI
   // or we can just show the current user and a placeholder.
   const currentUser = useStore(state => state.user);
+  const showNotification = useStore(state => state.showNotification);
   
   const [users] = useState<User[]>([
     { id: '1', username: 'admin', role: 'admin' },
@@ -23,7 +24,7 @@ export default function UsersPage() {
         <h1 className="text-3xl font-bold text-stone-800">მომხმარებლები</h1>
         <button
           className="flex items-center gap-2 px-6 py-3 bg-stone-800 hover:bg-stone-900 text-white rounded-2xl font-bold transition-colors shadow-lg shadow-stone-800/20"
-          onClick={() => alert('მომხმარებლის დამატება (დემო ვერსია)')}
+          onClick={() => showNotification('მომხმარებლის დამატება (დემო ვერსია)', 'error')}
         >
           <Plus className="w-5 h-5" />
           მომხმარებლის დამატება
@@ -64,7 +65,7 @@ export default function UsersPage() {
                       <button
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="რედაქტირება"
-                        onClick={() => alert('რედაქტირება (დემო ვერსია)')}
+                        onClick={() => showNotification('რედაქტირება (დემო ვერსია)', 'error')}
                       >
                         <Edit2 className="w-5 h-5" />
                       </button>
@@ -72,7 +73,7 @@ export default function UsersPage() {
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         title="წაშლა"
                         disabled={currentUser?.username === user.username}
-                        onClick={() => alert('წაშლა (დემო ვერსია)')}
+                        onClick={() => showNotification('წაშლა (დემო ვერსია)', 'error')}
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>

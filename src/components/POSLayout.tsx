@@ -5,6 +5,7 @@ import { LogOut, Settings, Power, Home } from 'lucide-react';
 
 export default function POSLayout() {
   const user = useStore(state => state.user);
+  const showNotification = useStore(state => state.showNotification);
   const handleLogout = () => supabase.auth.signOut();
 
   return (
@@ -43,7 +44,9 @@ export default function POSLayout() {
             გასვლა
           </button>
           <button
-            onClick={() => { if (window.confirm('გათიშვა? / Close app?')) window.close(); }}
+            onClick={() => {
+              showNotification('გსურთ პროგრამის გათიშვა?', 'error', true, () => window.close());
+            }}
             title="Close app"
             className="flex items-center gap-2 px-4 py-2 text-stone-500 hover:bg-red-50 hover:text-red-600 rounded-xl font-medium transition-colors"
           >

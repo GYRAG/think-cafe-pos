@@ -1,10 +1,12 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useStore } from '../store';
 import { LogOut, LayoutDashboard, Package, Receipt, BarChart3, Users, ArrowLeft, Power } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export default function AdminLayout() {
   const location = useLocation();
+  const showNotification = useStore(state => state.showNotification);
   const handleLogout = () => supabase.auth.signOut();
 
   const navItems = [
@@ -64,7 +66,9 @@ export default function AdminLayout() {
             გასვლა
           </button>
           <button
-            onClick={() => { if (window.confirm('გათიშვა? / Close app?')) window.close(); }}
+            onClick={() => {
+              showNotification('გსურთ პროგრამის გათიშვა?', 'error', true, () => window.close());
+            }}
             title="Close app"
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-stone-500 hover:bg-red-50 hover:text-red-600 transition-colors"
           >

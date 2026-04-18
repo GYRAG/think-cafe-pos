@@ -11,6 +11,7 @@ import LauncherPage from './pages/LauncherPage';
 import POSPage from './pages/POSPage';
 import StockInPage from './pages/StockInPage';
 import LoginPage from './pages/LoginPage';
+import { NotificationModal } from './components/NotificationModal';
 
 // Admin pages — lazy loaded, only downloaded when user navigates to /admin
 const AdminLayout   = lazy(() => import('./components/AdminLayout'));
@@ -110,6 +111,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
+      <NotificationModal />
     </Router>
   );
 }
