@@ -59,15 +59,10 @@ export const useStore = create<AppState>()((set) => ({
   updateCartQuantity: (productId, delta) => set((state) => ({
     posCart: state.posCart.map(item => {
       if (item.product.id === productId) {
-        const newQuantity = item.quantity + delta;
-        return newQuantity > 0 ? { ...item, quantity: newQuantity } : item;
+        return { ...item, quantity: item.quantity + delta };
       }
       return item;
-    }).filter(item => {
-      // remove if quantity goes below 1
-      if (item.product.id === productId && item.quantity + delta <= 0) return false;
-      return true;
-    })
+    }).filter(item => item.quantity > 0)
   })),
 
   clearCart: () => set({ posCart: [] })
